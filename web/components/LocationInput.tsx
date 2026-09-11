@@ -7,10 +7,19 @@ interface Props {
   label: string;
   placeholder?: string;
   value?: string;
+  /** 指定すると、検索語にこの単語が含まれていない場合に自動で付加して検索する（例: IC専用欄で「インターチェンジ」を付加） */
+  querySuffix?: string;
   onSelect: (result: GeocodeResult) => void;
 }
 
-export default function LocationInput({ label, placeholder, value, onSelect }: Props) {
+const IC_KEYWORD_PATTERN = /ic|ｉｃ|インターチェンジ|jct|ｊｃｔ|ジャンクション/i;
+
+function buildSearchQuery(rawQuery: string, suffix?: string): string {
+  if (!suffix || IC_KEYWORD_PATTERN.test(rawQuery)) return rawQuery;
+  return `${rawQuery} ${suffix}`;
+}
+
+export default function LocationInput({ label, placeholder, value, querySuffix, onSelect }: Props) {
   const [query, setQuery] = useState(value ?? "");
   const [results, setResults] = useState<GeocodeResult[]>([]);
   const [open, setOpen] = useState(false);
@@ -33,7 +42,8 @@ export default function LocationInput({ label, placeholder, value, onSelect }: P
     }
     timerRef.current = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`);
+        const searchQuery = buildSearchQuery(query, querySuffix);
+        const res = await fetch(`/api/geocode?q=${encodeURIComponent(searchQuery)}`);
         const data = await res.json();
         setResults(data.results ?? []);
         setOpen(true);
@@ -44,7 +54,7 @@ export default function LocationInput({ label, placeholder, value, onSelect }: P
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [query]);
+  }, [query, querySuffix]);
 
   return (
     <div className="relative">

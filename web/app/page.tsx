@@ -113,8 +113,18 @@ export default function Home() {
 
             {useIC && (
               <div className="ml-1 space-y-3 border-l-2 border-slate-200 pl-3 dark:border-slate-800">
-                <LocationInput label="乗りたいIC" placeholder="例: 鳴門IC" onSelect={setEntryIC} />
-                <LocationInput label="降りたいIC" placeholder="例: 垂水IC" onSelect={setExitIC} />
+                <LocationInput
+                  label="乗りたいIC"
+                  placeholder="例: 鳴門"
+                  querySuffix="インターチェンジ"
+                  onSelect={setEntryIC}
+                />
+                <LocationInput
+                  label="降りたいIC"
+                  placeholder="例: 垂水"
+                  querySuffix="インターチェンジ"
+                  onSelect={setExitIC}
+                />
               </div>
             )}
 
