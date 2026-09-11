@@ -6,15 +6,24 @@ import type { GeocodeResult } from "@/lib/types";
 interface Props {
   label: string;
   placeholder?: string;
+  value?: string;
   onSelect: (result: GeocodeResult) => void;
 }
 
-export default function LocationInput({ label, placeholder, onSelect }: Props) {
-  const [query, setQuery] = useState("");
+export default function LocationInput({ label, placeholder, value, onSelect }: Props) {
+  const [query, setQuery] = useState(value ?? "");
   const [results, setResults] = useState<GeocodeResult[]>([]);
   const [open, setOpen] = useState(false);
-  const selectedNameRef = useRef<string | null>(null);
+  const selectedNameRef = useRef<string | null>(value ?? null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (value !== undefined && value !== query) {
+      selectedNameRef.current = value;
+      setQuery(value);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
 
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);

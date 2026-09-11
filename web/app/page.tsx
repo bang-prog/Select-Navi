@@ -4,6 +4,7 @@ import { useState } from "react";
 import LocationInput from "@/components/LocationInput";
 import MapView from "@/components/MapView";
 import { useTurnByTurn } from "@/lib/useTurnByTurn";
+import { describeGeolocationError } from "@/lib/geolocation";
 import type { GeocodeResult, RouteResult } from "@/lib/types";
 import { VEHICLE_CLASS_LABELS, type VehicleClass } from "@/lib/toll";
 
@@ -18,8 +19,10 @@ export default function Home() {
   const [route, setRoute] = useState<RouteResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [locatingOrigin, setLocatingOrigin] = useState(false);
+  const [originLocateError, setOriginLocateError] = useState<string | null>(null);
 
-  const { isNavigating, currentPosition, currentStep, start, stop } = useTurnByTurn(
+  const { isNavigating, currentPosition, currentStep, geoError, start, stop } = useTurnByTurn(
     route?.legs ?? []
   );
 
@@ -52,6 +55,29 @@ export default function Home() {
     }
   };
 
+  const handleUseCurrentLocation = () => {
+    if (typeof navigator === "undefined" || !("geolocation" in navigator)) {
+      setOriginLocateError("この端末では位置情報が利用できません");
+      return;
+    }
+    setLocatingOrigin(true);
+    setOriginLocateError(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setOrigin({
+          name: "現在地",
+          coordinates: [pos.coords.longitude, pos.coords.latitude],
+        });
+        setLocatingOrigin(false);
+      },
+      (err) => {
+        setOriginLocateError(describeGeolocationError(err));
+        setLocatingOrigin(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
   return (
     <div className="min-h-screen bg-[#f6f7f8] text-slate-900 dark:bg-[#111821] dark:text-slate-100">
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-[380px_1fr]">
@@ -59,7 +85,25 @@ export default function Home() {
           <h1 className="text-xl font-bold">Select Navi</h1>
 
           <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-            <LocationInput label="出発地" placeholder="例: 徳島駅" onSelect={setOrigin} />
+            <div>
+              <LocationInput
+                label="出発地"
+                placeholder="例: 徳島駅"
+                value={origin?.name}
+                onSelect={setOrigin}
+              />
+              <button
+                type="button"
+                onClick={handleUseCurrentLocation}
+                disabled={locatingOrigin}
+                className="mt-1 text-xs font-medium text-[#196ee6] disabled:opacity-40"
+              >
+                {locatingOrigin ? "現在地を取得中..." : "📍現在地を出発地にする"}
+              </button>
+              {originLocateError && (
+                <p className="mt-1 text-xs text-red-600">{originLocateError}</p>
+              )}
+            </div>
             <LocationInput label="目的地" placeholder="例: 亀岡駅" onSelect={setDestination} />
 
             <label className="flex items-center gap-2 text-sm">
@@ -145,6 +189,12 @@ export default function Home() {
                   <p className="font-medium">次の案内</p>
                   <p>{currentStep.instruction}</p>
                 </div>
+              )}
+
+              {geoError && (
+                <p className="mt-2 rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
+                  {geoError}
+                </p>
               )}
             </div>
           )}

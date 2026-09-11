@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import type { LatLng, RouteLeg, RouteStep } from "./types";
+import { describeGeolocationError } from "./geolocation";
 
 const ARRIVAL_THRESHOLD_M = 40;
 
@@ -28,6 +29,7 @@ export function useTurnByTurn(legs: RouteLeg[]) {
   const [isNavigating, setIsNavigating] = useState(false);
   const [currentPosition, setCurrentPosition] = useState<LatLng | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
+  const [geoError, setGeoError] = useState<string | null>(null);
   const watchIdRef = useRef<number | null>(null);
 
   const steps: RouteStep[] = legs.flatMap((l) => l.steps);
@@ -37,12 +39,14 @@ export function useTurnByTurn(legs: RouteLeg[]) {
       alert("この端末では位置情報が利用できません");
       return;
     }
+    setGeoError(null);
     setStepIndex(0);
     setIsNavigating(true);
     if (steps[0]) speak(steps[0].instruction);
 
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
+        setGeoError(null);
         const current: LatLng = [pos.coords.longitude, pos.coords.latitude];
         setCurrentPosition(current);
 
@@ -59,7 +63,9 @@ export function useTurnByTurn(legs: RouteLeg[]) {
         });
       },
       (err) => {
-        console.error("位置情報の取得に失敗しました", err);
+        const message = describeGeolocationError(err);
+        console.error(`位置情報の取得に失敗しました (code=${err.code}): ${err.message}`);
+        setGeoError(message);
       },
       { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
     );
@@ -81,6 +87,7 @@ export function useTurnByTurn(legs: RouteLeg[]) {
     isNavigating,
     currentPosition,
     currentStep: steps[stepIndex] ?? null,
+    geoError,
     start,
     stop,
   };
