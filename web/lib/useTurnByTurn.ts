@@ -2,20 +2,11 @@
 
 import { useCallback, useRef, useState } from "react";
 import type { LatLng, RouteLeg, RouteStep } from "./types";
-import { describeGeolocationError } from "./geolocation";
+import { computeBearing, describeGeolocationError, haversineMeters } from "./geolocation";
 
 const ARRIVAL_THRESHOLD_M = 40;
-
-function haversineMeters(a: LatLng, b: LatLng): number {
-  const R = 6371000;
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const dLat = toRad(b[1] - a[1]);
-  const dLng = toRad(b[0] - a[0]);
-  const lat1 = toRad(a[1]);
-  const lat2 = toRad(b[1]);
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(h));
-}
+// GPSの誤差でこれ未満の移動しかない場合は進行方向の再計算をしない（停止中のブレ防止）
+const MIN_DISTANCE_FOR_HEADING_M = 3;
 
 function speak(text: string) {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
@@ -28,9 +19,11 @@ function speak(text: string) {
 export function useTurnByTurn(legs: RouteLeg[]) {
   const [isNavigating, setIsNavigating] = useState(false);
   const [currentPosition, setCurrentPosition] = useState<LatLng | null>(null);
+  const [heading, setHeading] = useState<number | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
   const [geoError, setGeoError] = useState<string | null>(null);
   const watchIdRef = useRef<number | null>(null);
+  const prevPositionRef = useRef<LatLng | null>(null);
 
   const steps: RouteStep[] = legs.flatMap((l) => l.steps);
 
@@ -41,6 +34,8 @@ export function useTurnByTurn(legs: RouteLeg[]) {
     }
     setGeoError(null);
     setStepIndex(0);
+    setHeading(null);
+    prevPositionRef.current = null;
     setIsNavigating(true);
     if (steps[0]) speak(steps[0].instruction);
 
@@ -49,6 +44,17 @@ export function useTurnByTurn(legs: RouteLeg[]) {
         setGeoError(null);
         const current: LatLng = [pos.coords.longitude, pos.coords.latitude];
         setCurrentPosition(current);
+
+        const rawHeading = pos.coords.heading;
+        if (rawHeading !== null && !Number.isNaN(rawHeading)) {
+          setHeading(rawHeading);
+        } else if (prevPositionRef.current) {
+          const movedDistance = haversineMeters(prevPositionRef.current, current);
+          if (movedDistance > MIN_DISTANCE_FOR_HEADING_M) {
+            setHeading(computeBearing(prevPositionRef.current, current));
+          }
+        }
+        prevPositionRef.current = current;
 
         setStepIndex((idx) => {
           const step = steps[idx];
@@ -86,6 +92,7 @@ export function useTurnByTurn(legs: RouteLeg[]) {
   return {
     isNavigating,
     currentPosition,
+    heading,
     currentStep: steps[stepIndex] ?? null,
     geoError,
     start,

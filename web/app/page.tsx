@@ -22,7 +22,7 @@ export default function Home() {
   const [locatingOrigin, setLocatingOrigin] = useState(false);
   const [originLocateError, setOriginLocateError] = useState<string | null>(null);
 
-  const { isNavigating, currentPosition, currentStep, geoError, start, stop } = useTurnByTurn(
+  const { isNavigating, currentPosition, heading, currentStep, geoError, start, stop } = useTurnByTurn(
     route?.legs ?? []
   );
 
@@ -201,7 +201,12 @@ export default function Home() {
         </div>
 
         <div className="h-[70vh] lg:h-auto">
-          <MapView legs={route?.legs ?? []} currentPosition={currentPosition} />
+          <MapView
+            legs={route?.legs ?? []}
+            currentPosition={currentPosition}
+            isNavigating={isNavigating}
+            heading={heading}
+          />
         </div>
       </div>
     </div>

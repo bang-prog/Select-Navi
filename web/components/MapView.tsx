@@ -15,14 +15,31 @@ const LEG_COLORS: Record<string, string> = {
 interface Props {
   legs: RouteLeg[];
   currentPosition: LatLng | null;
+  isNavigating: boolean;
+  heading: number | null;
 }
 
 const MAX_LEG_LAYERS = 5;
+const NAVIGATION_ZOOM = 17;
+const NAVIGATION_PITCH = 60;
 
-export default function MapView({ legs, currentPosition }: Props) {
+function createMarkerElement(): HTMLDivElement {
+  // 進行方向を指す矢印（三角形）。rotationAlignment: "map" と組み合わせて向きを表現する
+  const el = document.createElement("div");
+  el.style.width = "0";
+  el.style.height = "0";
+  el.style.borderLeft = "9px solid transparent";
+  el.style.borderRight = "9px solid transparent";
+  el.style.borderBottom = "18px solid #196ee6";
+  el.style.filter = "drop-shadow(0 0 2px rgba(255,255,255,0.9))";
+  return el;
+}
+
+export default function MapView({ legs, currentPosition, isNavigating, heading }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markerRef = useRef<mapboxgl.Marker | null>(null);
+  const wasNavigatingRef = useRef(false);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -94,18 +111,37 @@ export default function MapView({ legs, currentPosition }: Props) {
     if (!map || !currentPosition) return;
 
     if (!markerRef.current) {
-      const el = document.createElement("div");
-      el.style.width = "16px";
-      el.style.height = "16px";
-      el.style.borderRadius = "50%";
-      el.style.background = "#196ee6";
-      el.style.border = "3px solid white";
-      el.style.boxShadow = "0 0 4px rgba(0,0,0,0.4)";
-      markerRef.current = new mapboxgl.Marker(el).setLngLat(currentPosition).addTo(map);
+      markerRef.current = new mapboxgl.Marker({
+        element: createMarkerElement(),
+        rotationAlignment: "map",
+      })
+        .setLngLat(currentPosition)
+        .addTo(map);
     } else {
       markerRef.current.setLngLat(currentPosition);
     }
-  }, [currentPosition]);
+    markerRef.current.setRotation(heading ?? 0);
+  }, [currentPosition, heading]);
+
+  // ナビ中は現在地・進行方向に合わせてカメラを追従させる（車の少し上からの視点）
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (isNavigating && currentPosition) {
+      map.easeTo({
+        center: currentPosition,
+        zoom: NAVIGATION_ZOOM,
+        pitch: NAVIGATION_PITCH,
+        bearing: heading ?? map.getBearing(),
+        duration: wasNavigatingRef.current ? 800 : 1000,
+      });
+      wasNavigatingRef.current = true;
+    } else if (wasNavigatingRef.current && !isNavigating) {
+      map.easeTo({ pitch: 0, bearing: 0, duration: 500 });
+      wasNavigatingRef.current = false;
+    }
+  }, [currentPosition, isNavigating, heading]);
 
   return <div ref={containerRef} className="h-full w-full overflow-hidden rounded-2xl" />;
 }
