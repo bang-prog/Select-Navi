@@ -25,6 +25,36 @@ export function computeBearing(from: LatLng, to: LatLng): number {
   return (toDeg(Math.atan2(y, x)) + 360) % 360;
 }
 
+// 現在地から、あるルート線（LineString座標列）までの最短距離をメートルで返す
+// 短距離（数km以内）を想定した簡易的な平面近似（正距円筒図法）で十分な精度
+export function distanceToPolylineMeters(point: LatLng, coordinates: LatLng[]): number {
+  if (coordinates.length === 0) return Infinity;
+  if (coordinates.length === 1) return haversineMeters(point, coordinates[0]);
+
+  const R = 6371000;
+  const lat0 = (point[1] * Math.PI) / 180;
+  const toXY = (p: LatLng) => ({
+    x: (((p[0] - point[0]) * Math.PI) / 180) * R * Math.cos(lat0),
+    y: (((p[1] - point[1]) * Math.PI) / 180) * R,
+  });
+
+  let min = Infinity;
+  for (let i = 0; i < coordinates.length - 1; i++) {
+    const a = toXY(coordinates[i]);
+    const b = toXY(coordinates[i + 1]);
+    const abx = b.x - a.x;
+    const aby = b.y - a.y;
+    const lenSq = abx * abx + aby * aby;
+    let t = lenSq > 0 ? (-a.x * abx - a.y * aby) / lenSq : 0;
+    t = Math.max(0, Math.min(1, t));
+    const cx = a.x + t * abx;
+    const cy = a.y + t * aby;
+    const dist = Math.sqrt(cx * cx + cy * cy);
+    if (dist < min) min = dist;
+  }
+  return min;
+}
+
 export function describeGeolocationError(err: GeolocationPositionError): string {
   switch (err.code) {
     case err.PERMISSION_DENIED:

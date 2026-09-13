@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import LocationInput from "@/components/LocationInput";
 import MapView from "@/components/MapView";
 import { useTurnByTurn } from "@/lib/useTurnByTurn";
 import { describeGeolocationError } from "@/lib/geolocation";
-import type { GeocodeResult, RouteResult } from "@/lib/types";
+import type { GeocodeResult, LatLng, RouteResult } from "@/lib/types";
 import { VEHICLE_CLASS_LABELS, type VehicleClass } from "@/lib/toll";
 
 const VEHICLE_CLASS_ORDER: VehicleClass[] = ["light", "standard", "medium", "large", "extraLarge"];
@@ -22,9 +22,37 @@ export default function Home() {
   const [locatingOrigin, setLocatingOrigin] = useState(false);
   const [originLocateError, setOriginLocateError] = useState<string | null>(null);
 
-  const { isNavigating, currentPosition, heading, currentStep, geoError, start, stop } = useTurnByTurn(
-    route?.legs ?? []
+  // ナビ中にルートを外れたら、現在地を新しい出発地として再計算する。
+  // まだ乗りたいICに着く前（1区間目）ならIC経由の指定を維持し、
+  // 高速区間・降りたIC後の区間ならIC指定なしで目的地まで直接ルートを引き直す
+  const handleOffRoute = useCallback(
+    async (currentPosition: LatLng, currentLegIndex: number) => {
+      if (!destination) return;
+      const stillBeforeEntry = useIC && entryIC && exitIC && currentLegIndex === 0;
+      try {
+        const res = await fetch("/api/directions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            origin: currentPosition,
+            destination: destination.coordinates,
+            entryIC: stillBeforeEntry ? entryIC.coordinates : undefined,
+            exitIC: stillBeforeEntry ? exitIC.coordinates : undefined,
+          }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setRoute(data as RouteResult);
+        }
+      } catch {
+        // 再ルートに失敗しても案内は継続し、逸脱が続けば再度試行される
+      }
+    },
+    [destination, useIC, entryIC, exitIC]
   );
+
+  const { isNavigating, currentPosition, heading, currentStep, geoError, isRerouting, start, stop } =
+    useTurnByTurn(route?.legs ?? [], handleOffRoute);
 
   const canSearch = Boolean(origin && destination && (!useIC || (entryIC && exitIC)));
 
@@ -192,6 +220,12 @@ export default function Home() {
                 >
                   ナビ終了
                 </button>
+              )}
+
+              {isNavigating && isRerouting && (
+                <div className="mt-2 rounded-xl bg-amber-100 p-3 text-sm text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                  ルートを外れたため、再検索しています…
+                </div>
               )}
 
               {isNavigating && currentStep && (

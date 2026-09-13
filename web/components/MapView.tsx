@@ -65,6 +65,9 @@ export default function MapView({ legs, currentPosition, isNavigating, heading }
     if (!map) return;
 
     const applyLayers = () => {
+      // ナビ中の再ルートでは、追従カメラが現在地に合わせるのでズームアウトさせない
+      const shouldFitBounds = !isNavigating;
+
       for (let i = 0; i < MAX_LEG_LAYERS; i++) {
         const id = `route-leg-${i}`;
         if (map.getLayer(id)) map.removeLayer(id);
@@ -94,7 +97,7 @@ export default function MapView({ legs, currentPosition, isNavigating, heading }
         leg.geometry.coordinates.forEach((c) => bounds.extend(c));
       });
 
-      if (!bounds.isEmpty()) {
+      if (shouldFitBounds && !bounds.isEmpty()) {
         map.fitBounds(bounds, { padding: 60, duration: 500 });
       }
     };
@@ -104,7 +107,7 @@ export default function MapView({ legs, currentPosition, isNavigating, heading }
     } else {
       map.once("load", applyLayers);
     }
-  }, [legs]);
+  }, [legs, isNavigating]);
 
   useEffect(() => {
     const map = mapRef.current;

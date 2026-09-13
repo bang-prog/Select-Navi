@@ -82,29 +82,34 @@
 
 ## システム構成図（PM向け）
 
-**色の意味**：🔵青＝今すでに動いている部分／🟡黄＝今使っている外部サービス／⬜グレーの点線＝将来AWSへ移行した時に追加する部分（まだ何も作っていない）
+**色の意味**：🔵青＝今AWS上で実際に動いている部分／🟢緑＝ソースコード管理・自動デプロイの仕組み／🟡黄＝今使っている外部サービス／⬜グレーの点線＝データ保存機能が必要になった時に追加する部分（まだ何も作っていない）
 
 ```mermaid
 flowchart TB
     classDef current fill:#dbeafe,stroke:#196ee6,stroke-width:2px,color:#0f172a;
     classDef future fill:#f1f5f9,stroke:#94a3b8,stroke-width:1.5px,stroke-dasharray:5 5,color:#64748b;
     classDef external fill:#fef9c3,stroke:#ca8a04,stroke-width:2px,color:#422006;
+    classDef infra fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#052e16;
 
     User(("ユーザー<br/>スマホ / PC"))
+    GitHub[("GitHub<br/>bang-prog/select-navi")]
 
-    subgraph NOW["現在稼働中の構成（ローカル環境で動作確認済み）"]
+    subgraph NOW["現在AWS上で本番稼働中の構成"]
         direction LR
-        subgraph FE["画面ファイル<br/>web/app, web/components"]
+        subgraph Amplify["AWS Amplify Hosting<br/>（公開URLで動いている実体）"]
             direction TB
-            Page["page.tsx<br/>メイン画面"]
-            LocationInput["LocationInput.tsx<br/>地名・IC検索欄"]
-            MapView["MapView.tsx<br/>地図表示"]
-        end
-        subgraph BE["サーバー処理ファイル<br/>web/app/api, web/lib"]
-            direction TB
-            Geocode["geocode/route.ts<br/>地名→座標変換"]
-            Directions["directions/route.ts<br/>ルート計算"]
-            Toll["toll.ts<br/>高速料金の概算"]
+            subgraph FE["画面ファイル<br/>web/app, web/components"]
+                direction TB
+                Page["page.tsx<br/>メイン画面"]
+                LocationInput["LocationInput.tsx<br/>地名・IC検索欄"]
+                MapView["MapView.tsx<br/>地図表示"]
+            end
+            subgraph BE["APIルート（Amplify内部のLambdaで実行される）<br/>web/app/api, web/lib"]
+                direction TB
+                Geocode["geocode/route.ts<br/>地名→座標変換"]
+                Directions["directions/route.ts<br/>ルート計算"]
+                Toll["toll.ts<br/>高速料金の概算"]
+            end
         end
         subgraph EXT["外部サービス（今まさに使っている）"]
             direction TB
@@ -113,47 +118,45 @@ flowchart TB
         end
     end
 
-    subgraph FUTURE["将来：AWSへ移行した時に追加する構成（未着手）"]
+    subgraph FUTURE["将来：お気に入り保存やログイン機能が必要になったら追加する構成（未着手）"]
         direction LR
-        Amplify["Amplify Hosting<br/>（画面の置き場所）"]
-        Lambda["Lambda<br/>（サーバー処理の置き場所）"]
+        GenLambda["Amplify Gen2 バックエンド<br/>（独自に定義するLambda）"]
         DynamoDB[("DynamoDB<br/>（お気に入りルート等を保存）")]
         Cognito["Cognito<br/>（会員ログイン機能）"]
     end
 
-    User --> Page
+    GitHub -- "①コードをpush" --> Amplify
+    User -- "②公開URLにアクセス" --> Page
     Page --> LocationInput
     Page --> MapView
-    LocationInput -- "①地名を検索" --> Geocode
-    Page -- "②ルートを計算" --> Directions
-    Directions -- "③料金を計算" --> Toll
+    LocationInput -- "③地名を検索" --> Geocode
+    Page -- "④ルートを計算" --> Directions
+    Directions -- "⑤料金を計算" --> Toll
     Geocode -- "地名→座標" --> Google
     Directions -- "座標→ルート" --> Mapbox
     MapView -- "地図タイル取得" --> Mapbox
 
-    Amplify -- "呼び出す" --> Lambda
-    Lambda -- "保存・取得" --> DynamoDB
-    Lambda -. "ログイン確認" .-> Cognito
+    GenLambda -- "保存・取得" --> DynamoDB
+    GenLambda -. "ログイン確認" .-> Cognito
+    BE -. "保存機能が要る時はここへ接続" .-> GenLambda
 
-    Directions -. "将来はここへ引っ越す" .-> Lambda
-    Geocode -. "将来はここへ引っ越す" .-> Lambda
-
-    class Page,LocationInput,MapView,Geocode,Directions,Toll current;
+    class Page,LocationInput,MapView,Geocode,Directions,Toll,Amplify current;
+    class GitHub infra;
     class Google,Mapbox external;
-    class Amplify,Lambda,DynamoDB,Cognito future;
+    class GenLambda,DynamoDB,Cognito future;
 ```
 
 ### PMとして押さえておくポイント
 
-- **今動いているのは上段の青い箱だけ**。下段のAWS（Amplify・Lambda・DynamoDB・Cognito）はまだ1つも作っておらず、料金も発生していない
-- **今使っている外部サービスは黄色の2つだけ**：Google（地名検索用）とMapbox（地図表示・ルート計算用）。どちらも自分たちで契約したAPIキーを使っている
-- **DynamoDB（将来のデータベース）は、今のところ何のファイルとも繋がっていない**。将来Lambdaができた時に初めて繋がる想定で、今は`directions/route.ts`と`geocode/route.ts`（青い箱）がその役割を仮に代行している
-- ユーザーの操作の流れは番号順：①検索欄に地名を入力→②「ルートを検索」を押す→③高速区間なら料金も自動計算、という3ステップ
-- 下段のAWS部分に進む＝「Amplifyを実際に構築する」という次の意思決定が必要になるタイミングで、現状はまだそこに着手していない
+- **上段（青＋緑の箱）はすべて実際にAWS上で本番稼働中**。GitHubにpushすると①Amplifyが自動でビルド・デプロイし、公開URL（`https://main.dmm1g4zudj9sa.amplifyapp.com`）で誰でもアクセスできる状態
+- **画面ファイルとAPIルートは同じAmplify Hostingの中で動いている**。地名検索やルート計算のAPIルート（`geocode/route.ts`等）も、Amplifyが内部的に管理するLambda上で実行されている（自分たちで個別にLambdaを作ったわけではない）
+- **今使っている外部サービスは黄色の2つだけ**：Google（地名検索用）とMapbox（地図表示・ルート計算用）。どちらも自分たちで契約したAPIキーを使っており、悪用防止のためAPIの利用範囲を制限済み
+- **下段（点線・グレー）はまだ何も作っていない**。「お気に入りルートの保存」「会員ログイン」のような、データを保存する機能を作る時に初めてAmplify Gen2のバックエンド機能（独自Lambda・DynamoDB・Cognito）を追加する想定
+- ユーザーの操作の流れは番号順：①GitHubにpush（開発者の作業）→②ユーザーが公開URLにアクセス→③検索欄に地名を入力→④「ルートを検索」を押す→⑤高速区間なら料金も自動計算
 
 ## 未決定・今後相談する事項
 
 - GPS取得・音声案内まわりの具体的なライブラリ選定（ユーザー指示により個別に相談）
 - DynamoDBのテーブル設計（IC情報のマスタデータをどう持つか、ユーザーごとのお気に入りルートのキー設計など）
-- Mapboxアクセストークンの管理（現状`test_routing.py`にハードコードされているため、環境変数化が必要）
+- Mapboxアクセストークンの一段の保護（現状はAmplify環境変数で管理済みだが、ブラウザ用と将来のサーバー専用トークンを分けるかは未対応）
 - IC名検索の精度向上（将来的に国交省等のIC一覧オープンデータへの切替を検討）
