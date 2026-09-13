@@ -25,12 +25,15 @@ export function computeBearing(from: LatLng, to: LatLng): number {
   return (toDeg(Math.atan2(y, x)) + 360) % 360;
 }
 
-// 現在地から、あるルート線（LineString座標列）までの最短距離をメートルで返す
-// 短距離（数km以内）を想定した簡易的な平面近似（正距円筒図法）で十分な精度
-export function distanceToPolylineMeters(point: LatLng, coordinates: LatLng[]): number {
-  if (coordinates.length === 0) return Infinity;
-  if (coordinates.length === 1) return haversineMeters(point, coordinates[0]);
+interface NearestPointOnPolyline {
+  distance: number;
+  segmentIndex: number;
+  t: number;
+}
 
+// 現在地から見た、ルート線（LineString座標列）上の最も近い点を求める
+// 短距離（数km以内）を想定した簡易的な平面近似（正距円筒図法）で十分な精度
+function nearestPointOnPolyline(point: LatLng, coordinates: LatLng[]): NearestPointOnPolyline {
   const R = 6371000;
   const lat0 = (point[1] * Math.PI) / 180;
   const toXY = (p: LatLng) => ({
@@ -38,7 +41,7 @@ export function distanceToPolylineMeters(point: LatLng, coordinates: LatLng[]): 
     y: (((p[1] - point[1]) * Math.PI) / 180) * R,
   });
 
-  let min = Infinity;
+  let best: NearestPointOnPolyline = { distance: Infinity, segmentIndex: 0, t: 0 };
   for (let i = 0; i < coordinates.length - 1; i++) {
     const a = toXY(coordinates[i]);
     const b = toXY(coordinates[i + 1]);
@@ -50,9 +53,29 @@ export function distanceToPolylineMeters(point: LatLng, coordinates: LatLng[]): 
     const cx = a.x + t * abx;
     const cy = a.y + t * aby;
     const dist = Math.sqrt(cx * cx + cy * cy);
-    if (dist < min) min = dist;
+    if (dist < best.distance) {
+      best = { distance: dist, segmentIndex: i, t };
+    }
   }
-  return min;
+  return best;
+}
+
+// 現在地から、あるルート線（LineString座標列）までの最短距離をメートルで返す
+export function distanceToPolylineMeters(point: LatLng, coordinates: LatLng[]): number {
+  if (coordinates.length === 0) return Infinity;
+  if (coordinates.length === 1) return haversineMeters(point, coordinates[0]);
+  return nearestPointOnPolyline(point, coordinates).distance;
+}
+
+// ルート線のうち、現在地より手前（通過済み）の部分を切り落とし、
+// 現在地の直近点から先だけの座標列を返す（ナビ画面で通過済み区間を消すために使う）
+export function trimPolylineFromPoint(point: LatLng, coordinates: LatLng[]): LatLng[] {
+  if (coordinates.length < 2) return coordinates;
+  const { segmentIndex, t } = nearestPointOnPolyline(point, coordinates);
+  const a = coordinates[segmentIndex];
+  const b = coordinates[segmentIndex + 1];
+  const projected: LatLng = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+  return [projected, ...coordinates.slice(segmentIndex + 1)];
 }
 
 export function describeGeolocationError(err: GeolocationPositionError): string {

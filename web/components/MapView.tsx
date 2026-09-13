@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import type { LatLng, RouteLeg } from "@/lib/types";
+import { distanceToPolylineMeters, trimPolylineFromPoint } from "@/lib/geolocation";
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "";
 
@@ -125,6 +126,46 @@ export default function MapView({ legs, currentPosition, isNavigating, heading }
     }
     markerRef.current.setRotation(heading ?? 0);
   }, [currentPosition, heading]);
+
+  // ナビ中は現在地に応じて、通過済みの区間を地図上から消す
+  // （通過済みの区間＝現在地から一番近い区間より手前の区間は非表示にし、
+  // 現在地が属する区間は、現在地の直近点から先だけを描画し直す）
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isNavigating || !currentPosition || legs.length === 0) return;
+    if (!map.isStyleLoaded()) return;
+
+    let activeIndex = 0;
+    let minDist = Infinity;
+    legs.forEach((leg, i) => {
+      const d = distanceToPolylineMeters(currentPosition, leg.geometry.coordinates);
+      if (d < minDist) {
+        minDist = d;
+        activeIndex = i;
+      }
+    });
+
+    legs.forEach((leg, i) => {
+      const id = `route-leg-${i}`;
+      if (!map.getLayer(id)) return;
+
+      if (i < activeIndex) {
+        map.setLayoutProperty(id, "visibility", "none");
+        return;
+      }
+
+      map.setLayoutProperty(id, "visibility", "visible");
+      if (i === activeIndex) {
+        const trimmed = trimPolylineFromPoint(currentPosition, leg.geometry.coordinates);
+        const source = map.getSource(id) as mapboxgl.GeoJSONSource | undefined;
+        source?.setData({
+          type: "Feature",
+          properties: {},
+          geometry: { type: "LineString", coordinates: trimmed },
+        });
+      }
+    });
+  }, [currentPosition, isNavigating, legs]);
 
   // ナビ中は現在地・進行方向に合わせてカメラを追従させる（車の少し上からの視点）
   useEffect(() => {
