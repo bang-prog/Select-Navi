@@ -35,6 +35,7 @@ export function useTurnByTurn(
   const [stepIndex, setStepIndex] = useState(0);
   const [geoError, setGeoError] = useState<string | null>(null);
   const [isRerouting, setIsRerouting] = useState(false);
+  const [distanceToNextManeuver, setDistanceToNextManeuver] = useState<number | null>(null);
   const watchIdRef = useRef<number | null>(null);
   const prevPositionRef = useRef<LatLng | null>(null);
   const offRouteSinceRef = useRef<number | null>(null);
@@ -64,6 +65,7 @@ export function useTurnByTurn(
     offRouteSinceRef.current = null;
     reroutingRef.current = false;
     setIsRerouting(false);
+    setDistanceToNextManeuver(null);
     if (steps[0]) speak(steps[0].instruction);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [legs]);
@@ -77,6 +79,7 @@ export function useTurnByTurn(
     setStepIndex(0);
     setHeading(null);
     setIsRerouting(false);
+    setDistanceToNextManeuver(null);
     prevPositionRef.current = null;
     offRouteSinceRef.current = null;
     reroutingRef.current = false;
@@ -102,6 +105,7 @@ export function useTurnByTurn(
         prevPositionRef.current = current;
 
         let activeLegIndex = 0;
+        let maneuverDistance: number | null = null;
         setStepIndex((idx) => {
           const currentSteps = stepsRef.current;
           activeLegIndex = legIndexOfStepRef.current[idx] ?? Math.max(legsRef.current.length - 1, 0);
@@ -111,11 +115,17 @@ export function useTurnByTurn(
           if (dist < ARRIVAL_THRESHOLD_M && idx < currentSteps.length - 1) {
             const next = idx + 1;
             activeLegIndex = legIndexOfStepRef.current[next] ?? activeLegIndex;
-            speak(currentSteps[next].instruction);
+            const nextStep = currentSteps[next];
+            maneuverDistance = nextStep?.maneuverLocation
+              ? haversineMeters(current, nextStep.maneuverLocation)
+              : null;
+            speak(nextStep.instruction);
             return next;
           }
+          maneuverDistance = dist;
           return idx;
         });
+        setDistanceToNextManeuver(maneuverDistance);
 
         // ルート逸脱検知→一定時間続いたら再ルートを要求する
         const callback = onOffRouteRef.current;
@@ -156,6 +166,7 @@ export function useTurnByTurn(
     isNavigatingRef.current = false;
     setIsNavigating(false);
     setIsRerouting(false);
+    setDistanceToNextManeuver(null);
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
     }
@@ -168,6 +179,7 @@ export function useTurnByTurn(
     currentStep: steps[stepIndex] ?? null,
     geoError,
     isRerouting,
+    distanceToNextManeuver,
     start,
     stop,
   };

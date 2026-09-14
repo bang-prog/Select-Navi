@@ -51,8 +51,17 @@ export default function Home() {
     [destination, useIC, entryIC, exitIC]
   );
 
-  const { isNavigating, currentPosition, heading, currentStep, geoError, isRerouting, start, stop } =
-    useTurnByTurn(route?.legs ?? [], handleOffRoute);
+  const {
+    isNavigating,
+    currentPosition,
+    heading,
+    currentStep,
+    geoError,
+    isRerouting,
+    distanceToNextManeuver,
+    start,
+    stop,
+  } = useTurnByTurn(route?.legs ?? [], handleOffRoute);
 
   const canSearch = Boolean(origin && destination && (!useIC || (entryIC && exitIC)));
 
@@ -244,13 +253,26 @@ export default function Home() {
           )}
         </div>
 
-        <div className="h-[70vh] lg:h-auto">
+        <div className="relative h-[70vh] lg:h-auto">
           <MapView
             legs={route?.legs ?? []}
             currentPosition={currentPosition}
             isNavigating={isNavigating}
             heading={heading}
           />
+
+          {isNavigating && currentStep && (
+            <div className="absolute top-4 right-4 left-4 max-w-xs rounded-2xl bg-[#196ee6] p-3 text-white shadow-lg sm:left-auto">
+              <p className="text-xs font-medium text-white/80">
+                {distanceToNextManeuver == null
+                  ? "案内"
+                  : distanceToNextManeuver < 30
+                    ? "まもなく"
+                    : `${(Math.round(distanceToNextManeuver / 10) * 10).toLocaleString()}m先`}
+              </p>
+              <p className="text-base font-bold leading-snug">{currentStep.instruction}</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
