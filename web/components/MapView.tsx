@@ -24,15 +24,18 @@ const MAX_LEG_LAYERS = 5;
 const NAVIGATION_ZOOM = 17;
 const NAVIGATION_PITCH = 60;
 
-function createMarkerElement(): HTMLDivElement {
+function createMarkerElement(large: boolean): HTMLDivElement {
   // 進行方向を指す矢印（三角形）。rotationAlignment: "map" と組み合わせて向きを表現する
+  // ナビ中は現在地を見失わないよう、通常より一回り大きく表示する
+  const side = large ? 15 : 9;
+  const base = large ? 30 : 18;
   const el = document.createElement("div");
   el.style.width = "0";
   el.style.height = "0";
-  el.style.borderLeft = "9px solid transparent";
-  el.style.borderRight = "9px solid transparent";
-  el.style.borderBottom = "18px solid #196ee6";
-  el.style.filter = "drop-shadow(0 0 2px rgba(255,255,255,0.9))";
+  el.style.borderLeft = `${side}px solid transparent`;
+  el.style.borderRight = `${side}px solid transparent`;
+  el.style.borderBottom = `${base}px solid #196ee6`;
+  el.style.filter = "drop-shadow(0 0 3px rgba(255,255,255,0.95))";
   return el;
 }
 
@@ -116,7 +119,7 @@ export default function MapView({ legs, currentPosition, isNavigating, heading }
 
     if (!markerRef.current) {
       markerRef.current = new mapboxgl.Marker({
-        element: createMarkerElement(),
+        element: createMarkerElement(isNavigating),
         rotationAlignment: "map",
       })
         .setLngLat(currentPosition)
@@ -125,7 +128,27 @@ export default function MapView({ legs, currentPosition, isNavigating, heading }
       markerRef.current.setLngLat(currentPosition);
     }
     markerRef.current.setRotation(heading ?? 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPosition, heading]);
+
+  // ナビ開始／終了でマーカーの大きさを切り替える。サイズ変更だけだと
+  // Mapboxがアンカー位置を再計算せず表示がずれるため、同じ位置・向きで作り直す
+  useEffect(() => {
+    const map = mapRef.current;
+    const marker = markerRef.current;
+    if (!map || !marker) return;
+
+    const lngLat = marker.getLngLat();
+    const rotation = marker.getRotation();
+    marker.remove();
+    markerRef.current = new mapboxgl.Marker({
+      element: createMarkerElement(isNavigating),
+      rotationAlignment: "map",
+    })
+      .setLngLat(lngLat)
+      .setRotation(rotation)
+      .addTo(map);
+  }, [isNavigating]);
 
   // ナビ中は現在地に応じて、通過済みの区間を地図上から消す
   // （通過済みの区間＝現在地から一番近い区間より手前の区間は非表示にし、
