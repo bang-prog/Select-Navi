@@ -16,11 +16,11 @@
 | 音声案内 | Web Speech API（想定） | ライブラリ選定は別途相談 |
 | 地名・IC検索（ジオコーディング） | **Google Places API (New) - Text Search** | 詳細は下記「ジオコーディングをGoogleに切り替えた経緯」参照 |
 | 高速料金の概算 | 自前実装（NEXCO標準料金式） | 詳細は下記「高速料金表示について」参照 |
-| インフラ | AWS Amplify（Gen 2） | ホスティング・API・DB・将来の認証をまとめて管理 |
-| API | API Gateway + Lambda | Amplify Gen 2 が内部生成 |
-| データベース | DynamoDB | AWSの永年無料枠を活用 |
+| インフラ | AWS Amplify Hosting | 画面・APIルートのホスティングのみ利用。Gen 2の自動生成バックエンドは不使用（詳細は下記「通報機能のデータ永続化について」参照） |
+| API | Next.js API Routes | Amplify Hosting内のLambdaで実行される |
+| データベース | DynamoDB | AWS SDK（`@aws-sdk/lib-dynamodb`）からAPI Routeで直接読み書き。TTLで古いデータを自動失効 |
 | 認証（将来） | Cognito | MVP時点では未使用、ユーザー増加時に追加 |
-| 実装言語 | TypeScript（フロント・バックエンド共通） | Next.js と Lambda（Amplify Gen 2の`backend.ts`）を同一言語に統一 |
+| 実装言語 | TypeScript（フロント・バックエンド共通） | Next.jsのAPI Routesも含め、フロント・バックエンドを同一言語に統一 |
 
 ## なぜこの構成にしたか
 
@@ -28,7 +28,7 @@
 - 「まずはWebアプリ（PWA）で検証したい」という要望に合致。ネイティブアプリ化は後回しにできる
 - Mapboxは既に`test_routing.py`で動作検証済み（ジオコーディング＋Directions APIでIC区間分割ルートの算出に成功している）ため、そのまま踏襲
 
-### AWS Amplify（Gen 2）をインフラに採用
+### AWS Amplify Hostingをインフラに採用
 検討した選択肢は3つ：
 1. サーバーレス（素のLambda + API Gateway + DynamoDB）
 2. 従来型（EC2 + RDS Postgres）
@@ -44,9 +44,30 @@
 
 「将来ユーザーを増やしたいが今は無料枠で運用したい」「運用しやすさを優先したい」という要件から、**内部的にはサーバーレス（Lambda/DynamoDB）の恩恵を受けつつ、運用の手間が最も少ないAmplify**を選択。
 
+### 通報機能のデータ永続化：Amplify Gen2ではなく軽量なAPI Route＋AWS SDKを採用
+
+事故・渋滞・工事の通報機能で、初めて「保存が必要なデータ（DynamoDB）」を扱うことになった。当初`TECH_STACK.md`では、この段階でAmplify Gen2（スキーマ定義からDB・GraphQL API・型付きクライアントまで自動生成する仕組み）を使う想定だったが、実装時に改めて検討し、**Amplify Gen2は使わず、既存の`geocode/route.ts`等と同じNext.js API RouteからAWS SDKで直接DynamoDBを読み書きする、より軽量な方式を採用**した。
+
+比較のポイント：
+
+| 観点 | Amplify Gen2 | 軽量なAPI Route＋AWS SDK（採用） |
+|---|---|---|
+| 学習コスト | 新しいスキーマ定義の書き方を覚える必要あり | 今のAPI Routeパターンの延長でよい |
+| 自動化される範囲 | DB・API（GraphQL/AppSync）・型定義まで一括生成 | 自分でテーブル作成とSDK呼び出しを書く |
+| 将来のログイン機能等との相性 | 最初から統合設計されていて楽 | 後から自分で繋ぎこむ必要あり |
+| 今回の規模（通報機能1つ）への適性 | ややオーバースペック | ちょうど良い |
+
+**実装内容**：
+- DynamoDBテーブル`SelectNavi-Reports`をAWS Console上で直接作成（パーティションキー：`reportId`）
+- 通報データは「事故・渋滞・工事が起きてもすぐ古くなる」性質のため、**TTL（Time to Live）属性`expiresAt`を設定し、2時間で自動的にレコードが削除される**ようにした（掃除役のバッチ処理を自分で作る必要がない）
+- Amplify Hosting側のLambda実行ロールに、このテーブルだけへの`PutItem`/`Scan`/`Query`/`GetItem`を許可するIAMインラインポリシーを追加
+- ローカル開発用に、同じ権限を持つ専用のIAMユーザー（アクセスキー）を別途発行し、`.env.local`で管理（本番はLambda実行ロールの権限を自動的に使うため、本番用のアクセスキーは不要）
+- `web/app/api/reports/route.ts`：POST（通報の登録）、GET（緯度経度を受け取り、有効な通報を全件取得して距離で絞り込み）を実装。件数がまだ小規模なため、地理検索エンジンは使わず簡易的な全件スキャン＋距離計算で済ませている
+
+将来ユーザーが増えて複数のデータ機能（お気に入り保存・ログイン等）が必要になった段階で、Amplify Gen2への切り替えを再検討する。
+
 ### TypeScriptに統一
-- Amplify Gen 2はバックエンド定義自体がTypeScript（`amplify/backend.ts`）
-- フロントエンド（Next.js）と同じ言語にすることで、一人開発での認知負荷を下げる
+- フロントエンド（Next.js）とAPI Routeを同じ言語にすることで、一人開発での認知負荷を下げる
 - 既存の`test_routing.py`（Python）はMapbox APIを2回呼ぶだけのシンプルなロジックのため、TypeScriptへの移植コストは低い
 
 ## ジオコーディングをGoogleに切り替えた経緯
@@ -109,8 +130,10 @@ flowchart TB
                 Geocode["geocode/route.ts<br/>地名→座標変換"]
                 Directions["directions/route.ts<br/>ルート計算"]
                 Toll["toll.ts<br/>高速料金の概算"]
+                Reports["reports/route.ts<br/>事故・渋滞・工事の通報<br/>（画面のボタンUIは未実装）"]
             end
         end
+        DynamoDB[("DynamoDB<br/>SelectNavi-Reports<br/>（TTLで2時間後に自動失効）")]
         subgraph EXT["外部サービス（今まさに使っている）"]
             direction TB
             Google[("Google Places API")]
@@ -118,10 +141,8 @@ flowchart TB
         end
     end
 
-    subgraph FUTURE["将来：お気に入り保存やログイン機能が必要になったら追加する構成（未着手）"]
+    subgraph FUTURE["将来：会員ログイン機能が必要になったら追加する構成（未着手）"]
         direction LR
-        GenLambda["Amplify Gen2 バックエンド<br/>（独自に定義するLambda）"]
-        DynamoDB[("DynamoDB<br/>（お気に入りルート等を保存）")]
         Cognito["Cognito<br/>（会員ログイン機能）"]
     end
 
@@ -135,28 +156,29 @@ flowchart TB
     Geocode -- "地名→座標" --> Google
     Directions -- "座標→ルート" --> Mapbox
     MapView -- "地図タイル取得" --> Mapbox
+    Reports -- "AWS SDKで直接読み書き<br/>(IAMロールで許可)" --> DynamoDB
 
-    GenLambda -- "保存・取得" --> DynamoDB
-    GenLambda -. "ログイン確認" .-> Cognito
-    BE -. "保存機能が要る時はここへ接続" .-> GenLambda
+    BE -. "会員機能が要る時はここへ接続" .-> Cognito
 
-    class Page,LocationInput,MapView,Geocode,Directions,Toll,Amplify current;
+    class Page,LocationInput,MapView,Geocode,Directions,Toll,Reports,Amplify,DynamoDB current;
     class GitHub infra;
     class Google,Mapbox external;
-    class GenLambda,DynamoDB,Cognito future;
+    class Cognito future;
 ```
 
 ### PMとして押さえておくポイント
 
 - **上段（青＋緑の箱）はすべて実際にAWS上で本番稼働中**。GitHubにpushすると①Amplifyが自動でビルド・デプロイし、公開URL（`https://main.dmm1g4zudj9sa.amplifyapp.com`）で誰でもアクセスできる状態
 - **画面ファイルとAPIルートは同じAmplify Hostingの中で動いている**。地名検索やルート計算のAPIルート（`geocode/route.ts`等）も、Amplifyが内部的に管理するLambda上で実行されている（自分たちで個別にLambdaを作ったわけではない）
+- **DynamoDBが初めて「現在稼働中」の箱に入った**：事故・渋滞・工事の通報データを保存するテーブルを実際に作成し、`reports/route.ts`がAWS SDKで直接読み書きしている。ただし今できているのはこのバックエンドAPIまでで、**画面上の「事故」「渋滞」「工事」ボタンや、近くの通報を取得して表示する仕組みはまだ未実装**
 - **今使っている外部サービスは黄色の2つだけ**：Google（地名検索用）とMapbox（地図表示・ルート計算用）。どちらも自分たちで契約したAPIキーを使っており、悪用防止のためAPIの利用範囲を制限済み
-- **下段（点線・グレー）はまだ何も作っていない**。「お気に入りルートの保存」「会員ログイン」のような、データを保存する機能を作る時に初めてAmplify Gen2のバックエンド機能（独自Lambda・DynamoDB・Cognito）を追加する想定
+- **下段（点線・グレー）に残っているのは会員ログイン機能（Cognito）だけ**。これが必要になるのは「ユーザーごとのお気に入り」のような、個人に紐づくデータを扱う機能を作る時
 - ユーザーの操作の流れは番号順：①GitHubにpush（開発者の作業）→②ユーザーが公開URLにアクセス→③検索欄に地名を入力→④「ルートを検索」を押す→⑤高速区間なら料金も自動計算
 
 ## 未決定・今後相談する事項
 
 - GPS取得・音声案内まわりの具体的なライブラリ選定（ユーザー指示により個別に相談）
-- DynamoDBのテーブル設計（IC情報のマスタデータをどう持つか、ユーザーごとのお気に入りルートのキー設計など）
+- 事故・渋滞・工事の通報を、他のユーザーにどう届けるか（ナビ中に定期的にAPIを呼びに行く「ポーリング方式」を軸に検討中。Service Worker等を使ったプッシュ通知はより本格的だが未着手）
+- 通報機能の画面側（「事故」「渋滞」「工事」ボタンの設置、近くの通報の表示・音声案内）はこれから実装
 - Mapboxアクセストークンの一段の保護（現状はAmplify環境変数で管理済みだが、ブラウザ用と将来のサーバー専用トークンを分けるかは未対応）
 - IC名検索の精度向上（将来的に国交省等のIC一覧オープンデータへの切替を検討）
