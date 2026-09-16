@@ -40,3 +40,15 @@ export interface RouteResult {
   totalDistanceKm: number;
   totalDurationMin: number;
 }
+
+export type ReportType = "accident" | "jam" | "construction";
+
+export interface Report {
+  reportId: string;
+  type: ReportType;
+  lat: number;
+  lng: number;
+  reportedAt: number;
+  // DynamoDBのTTLに使う属性。UNIXエポック秒（ミリ秒ではない）
+  expiresAt: number;
+}
