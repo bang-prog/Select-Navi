@@ -137,11 +137,27 @@ applications:
 
 **教訓**：モノレポ＋SSR（Amplify Hosting）構成では、`NEXT_PUBLIC_`が付く変数だけで動作確認したつもりでも、サーバー専用の変数が同じように動くとは限らない。両方の種類の変数を実際にAPIルート経由で動作確認する必要がある。
 
+## npmパッケージ追加時の`package-lock.json`ズレが再発（重大・運用ルール）
+
+DynamoDB連携のため`@aws-sdk/client-dynamodb`・`@aws-sdk/lib-dynamodb`を`npm install`で追加してプッシュしたところ、Amplifyのデプロイが再び失敗した。ビルドログの内容は、最初のデプロイ失敗（上記「4. モノレポ設定でつまずいた点」の後に発生した`npm ci`エラー）と同種のものだった。
+
+```
+npm error `npm ci` can only install packages when your package.json and package-lock.json ... are in sync
+npm error Invalid: lock file's @emnapi/wasi-threads@1.2.1 does not satisfy @emnapi/wasi-threads@1.2.3
+npm error Missing: @emnapi/core@1.10.0 from lock file
+```
+
+**原因**：Tailwind CSS v4が使う`lightningcss`まわりの、環境依存で解決されるオプション依存パッケージが影響し、`npm install`でパッケージを追加するたびに`package-lock.json`が微妙にズレることがある。ローカルの`npm install`は自動調整してしまうため気づけず、`npm ci`を使うAmplifyのビルドでのみ発覚する。
+
+**修正内容**：初回と同じ手順（`node_modules`と`package-lock.json`を削除→`npm install`で再生成→`npm ci`と`npm run build`をローカルで通してから`package-lock.json`だけをコミット）で解消。
+
+**教訓・運用ルール**：**新しいnpmパッケージを追加した後は、コミット・プッシュする前に必ずローカルで`npm ci`を実行し、Amplifyと同じ条件でエラーが出ないことを確認する。** `npm install`が通ることだけでは不十分。
+
 ## 残作業（次回の続き）
 
 1. ~~Amplify Consoleの「環境変数」設定画面で`GOOGLE_MAPS_API_KEY`・`NEXT_PUBLIC_MAPBOX_TOKEN`を追加~~ → 完了
 2. ~~公開URLで実際に検索・ルート計算・ナビ機能が動くか一通り確認~~ → 検索APIの動作確認完了。ルート計算・ナビ機能は未確認
-3. 動作確認用に追加した一時的な診断用エンドポイント（`web/app/api/debug-env/route.ts`）を削除する
+3. ~~動作確認用に追加した一時的な診断用エンドポイント（`web/app/api/debug-env/route.ts`）を削除する~~ → 完了
 4. （任意）本番向けにAPIキーの制限を見直す（Amplifyの送信元IPやドメインで絞り込む）
 
 ## 関連ドキュメント
