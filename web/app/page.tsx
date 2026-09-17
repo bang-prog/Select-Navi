@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import LocationInput from "@/components/LocationInput";
 import MapView from "@/components/MapView";
+import ReportButtons, { REPORT_LABELS } from "@/components/ReportButtons";
 import { useTurnByTurn } from "@/lib/useTurnByTurn";
-import { describeGeolocationError } from "@/lib/geolocation";
+import { useNearbyReports } from "@/lib/useNearbyReports";
+import { describeGeolocationError, haversineMeters } from "@/lib/geolocation";
 import type { GeocodeResult, LatLng, RouteResult } from "@/lib/types";
 import { VEHICLE_CLASS_LABELS, type VehicleClass } from "@/lib/toll";
 
@@ -62,6 +64,15 @@ export default function Home() {
     start,
     stop,
   } = useTurnByTurn(route?.legs ?? [], handleOffRoute);
+
+  const { newReport, dismissNewReport } = useNearbyReports(currentPosition, isNavigating);
+
+  // 新着通報のアラートは一定時間で自動的に消す
+  useEffect(() => {
+    if (!newReport) return;
+    const timer = setTimeout(dismissNewReport, 8000);
+    return () => clearTimeout(timer);
+  }, [newReport, dismissNewReport]);
 
   const canSearch = Boolean(origin && destination && (!useIC || (entryIC && exitIC)));
 
@@ -271,6 +282,19 @@ export default function Home() {
                     : `${(Math.round(distanceToNextManeuver / 10) * 10).toLocaleString()}m先`}
               </p>
               <p className="text-base font-bold leading-snug">{currentStep.instruction}</p>
+            </div>
+          )}
+
+          {newReport && currentPosition && (
+            <div className="absolute top-24 right-4 left-4 max-w-xs rounded-2xl bg-amber-500 p-3 text-sm font-medium text-white shadow-lg sm:left-auto">
+              約{Math.round(haversineMeters(currentPosition, [newReport.lng, newReport.lat]) / 100) * 100}
+              m先で{REPORT_LABELS[newReport.type]}の通報がありました
+            </div>
+          )}
+
+          {isNavigating && (
+            <div className="absolute bottom-4 right-4">
+              <ReportButtons currentPosition={currentPosition} />
             </div>
           )}
         </div>
