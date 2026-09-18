@@ -11,6 +11,12 @@ export const REPORT_LABELS: Record<ReportType, string> = {
 
 const REPORT_ORDER: ReportType[] = ["accident", "jam", "construction"];
 
+const REPORT_COLORS: Record<ReportType, string> = {
+  accident: "bg-red-600 text-white",
+  jam: "bg-green-600 text-white",
+  construction: "bg-yellow-400 text-slate-900",
+};
+
 interface Props {
   currentPosition: LatLng | null;
 }
@@ -57,7 +63,7 @@ export default function ReportButtons({ currentPosition }: Props) {
             type="button"
             onClick={() => handleReport(type)}
             disabled={submittingType !== null}
-            className="rounded-full bg-white px-3 py-2 text-xs font-semibold text-slate-800 shadow-lg disabled:opacity-50 dark:bg-slate-800 dark:text-slate-100"
+            className={`rounded-full px-3 py-2 text-xs font-semibold shadow-lg disabled:opacity-50 ${REPORT_COLORS[type]}`}
           >
             {submittingType === type ? "送信中…" : REPORT_LABELS[type]}
           </button>
