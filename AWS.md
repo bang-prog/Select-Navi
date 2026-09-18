@@ -153,6 +153,48 @@ npm error Missing: @emnapi/core@1.10.0 from lock file
 
 **教訓・運用ルール**：**新しいnpmパッケージを追加した後は、コミット・プッシュする前に必ずローカルで`npm ci`を実行し、Amplifyと同じ条件でエラーが出ないことを確認する。** `npm install`が通ることだけでは不十分。
 
+## SSRコードがDynamoDBにアクセスできない問題：「サービスロール」と「Compute role」の混同（重大）
+
+通報機能（`reports/route.ts`）を本番で動かしたところ、`REPORTS_TABLE_NAMEが設定されていません`エラーは解消したものの、次に以下のエラーが出てAPIが動かなかった。
+
+```json
+{"error":"Could not load credentials from any providers"}
+```
+
+**切り分け**：Amplify Consoleの「アプリの設定」→「全般」に表示されている「サービスロール」（`AmplifySSRLoggingRole-xxxx`）を確認し、そこにDynamoDBへのアクセスを許可するインラインポリシーを追加していた。IAM側でそのロールを開くと、ポリシーは確かに付いていることを確認できた。**権限は正しく設定されているように見えるのに、SDKが「認証情報そのものが見つからない」というエラーを返す**、という一見矛盾した状態だった。
+
+**原因**：AWS Amplify Hostingには、似て非なる2種類のIAMロールが存在する。
+
+1. **サービスロール**（`AmplifySSRLoggingRole`など）：ビルド時のログ出力等、Amplify自身の管理業務のために自動作成されるロール。「アプリの設定」→「全般」から見える
+2. **SSR Compute role（コンピューティングロール）**：Next.jsのAPIルートなど、SSRのコードが実行時に実際に使うロール。2025年2月にAmplify Hostingへ追加された比較的新しい機能で、「アプリの設定」→**「IAMロール」という別の独立したメニュー**から明示的に割り当てる必要がある
+
+今回、権限を追加していたのは1の「サービスロール」であり、実際にコードが実行時に使っていたのは2の「Compute role」だった。Compute roleには何も割り当てられていなかったため、DynamoDBへの権限どころか、そもそも認証情報自体を持たない状態でSDKが呼び出されており、「Could not load credentials from any providers」というエラーになっていた。
+
+**修正内容**：
+1. DynamoDBへのアクセスを許可するポリシーを、インラインではなく単独の管理ポリシーとして作成（`SelectNaviReportsPolicy`）
+2. Amplifyサービス自身がロールを一時的に借用できるようにする、専用の信頼ポリシー（trust policy）を持つ新しいIAMロールを作成
+
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Sid": "Statement1",
+         "Effect": "Allow",
+         "Principal": { "Service": ["amplify.amazonaws.com"] },
+         "Action": "sts:AssumeRole"
+       }
+     ]
+   }
+   ```
+
+   このロール（`SelectNaviSSRComputeRole`）に、1で作ったポリシーをアタッチ
+3. Amplify Console →「アプリの設定」→「IAMロール」→「コンピューティングロール」セクションの「編集」から、作成したロールをアプリに割り当て
+
+Compute roleの変更は再デプロイ不要で即座に反映される仕様のため、保存後すぐに本番APIで動作確認でき、正常にDynamoDBからデータが取得できることを確認した。
+
+**教訓**：Amplify Hostingで「SSRのコードから他のAWSサービス（DynamoDB等）にアクセスしたい」場合、一般的な「サービスロール」に権限を追加するだけでは不十分。専用の信頼ポリシーを持つ「SSR Compute role」を別途作成し、「IAMロール」メニューから明示的に割り当てる必要がある。
+
 ## 残作業（次回の続き）
 
 1. ~~Amplify Consoleの「環境変数」設定画面で`GOOGLE_MAPS_API_KEY`・`NEXT_PUBLIC_MAPBOX_TOKEN`を追加~~ → 完了
