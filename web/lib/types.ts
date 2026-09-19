@@ -5,7 +5,7 @@ export interface GeocodeResult {
   coordinates: LatLng;
 }
 
-export type LegKind = "local" | "highway";
+export type LegKind = "local" | "highway" | "route";
 
 export type VehicleClass = "light" | "standard" | "medium" | "large" | "extraLarge";
 

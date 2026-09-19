@@ -11,6 +11,7 @@ mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "";
 const LEG_COLORS: Record<string, string> = {
   local: "#196ee6",
   highway: "#e63946",
+  route: "#196ee6",
 };
 
 interface Props {

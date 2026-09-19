@@ -77,11 +77,12 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { origin, destination, entryIC, exitIC } = body as {
+    const { origin, destination, entryIC, exitIC, avoidHighway } = body as {
       origin?: LatLng;
       destination?: LatLng;
       entryIC?: LatLng;
       exitIC?: LatLng;
+      avoidHighway?: boolean;
     };
 
     if (!origin || !destination) {
@@ -98,8 +99,10 @@ export async function POST(req: NextRequest) {
       ]);
       legs.push(toLeg(r1, "local"), toLeg(r2, "highway"), toLeg(r3, "local"));
     } else {
-      const r = await fetchDirections(origin, destination, false);
-      legs.push(toLeg(r, "local"));
+      const r = await fetchDirections(origin, destination, Boolean(avoidHighway));
+      // 高速道路を避けた場合は確実に下道のみだが、通常の最短ルートは
+      // 高速を含み得るため「下道」と決め打ちせず、区別できる種別にしておく
+      legs.push(toLeg(r, avoidHighway ? "local" : "route"));
     }
 
     const result: RouteResult = {

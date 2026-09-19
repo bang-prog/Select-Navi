@@ -18,6 +18,7 @@ export default function Home() {
   const [useIC, setUseIC] = useState(false);
   const [entryIC, setEntryIC] = useState<GeocodeResult | null>(null);
   const [exitIC, setExitIC] = useState<GeocodeResult | null>(null);
+  const [avoidHighway, setAvoidHighway] = useState(false);
   const [route, setRoute] = useState<RouteResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +41,7 @@ export default function Home() {
             destination: destination.coordinates,
             entryIC: stillBeforeEntry ? entryIC.coordinates : undefined,
             exitIC: stillBeforeEntry ? exitIC.coordinates : undefined,
+            avoidHighway,
           }),
         });
         const data = await res.json();
@@ -50,7 +52,7 @@ export default function Home() {
         // 再ルートに失敗しても案内は継続し、逸脱が続けば再度試行される
       }
     },
-    [destination, useIC, entryIC, exitIC]
+    [destination, useIC, entryIC, exitIC, avoidHighway]
   );
 
   const {
@@ -76,8 +78,11 @@ export default function Home() {
 
   const canSearch = Boolean(origin && destination && (!useIC || (entryIC && exitIC)));
 
-  const handleSearch = async () => {
+  // avoidHighwayはstate更新が非同期のため、チェックボックスから即座に再検索する際に
+  // 古い値を参照しないよう、呼び出し側から明示的に上書き値を渡せるようにしている
+  const runSearch = async (overrides?: { avoidHighway?: boolean }) => {
     if (!origin || !destination) return;
+    const effectiveAvoidHighway = overrides?.avoidHighway ?? avoidHighway;
     setLoading(true);
     setError(null);
     try {
@@ -89,6 +94,7 @@ export default function Home() {
           destination: destination.coordinates,
           entryIC: useIC ? entryIC?.coordinates : undefined,
           exitIC: useIC ? exitIC?.coordinates : undefined,
+          avoidHighway: useIC ? undefined : effectiveAvoidHighway,
         }),
       });
       const data = await res.json();
@@ -100,6 +106,25 @@ export default function Home() {
       setError(e instanceof Error ? e.message : "エラーが発生しました");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAvoidHighwayChange = (checked: boolean) => {
+    setAvoidHighway(checked);
+    if (checked) {
+      setUseIC(false);
+      setEntryIC(null);
+      setExitIC(null);
+    }
+    if (origin && destination) {
+      runSearch({ avoidHighway: checked });
+    }
+  };
+
+  const handleUseICChange = (checked: boolean) => {
+    setUseIC(checked);
+    if (checked) {
+      setAvoidHighway(false);
     }
   };
 
@@ -155,30 +180,47 @@ export default function Home() {
             <LocationInput label="目的地" placeholder="例: 亀岡駅" onSelect={setDestination} />
 
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={useIC} onChange={(e) => setUseIC(e.target.checked)} />
-              IC経由で下道ルートも指定する
+              <input
+                type="checkbox"
+                checked={avoidHighway}
+                onChange={(e) => handleAvoidHighwayChange(e.target.checked)}
+              />
+              高速道路を使わない
             </label>
 
-            {useIC && (
-              <div className="ml-1 space-y-3 border-l-2 border-slate-200 pl-3 dark:border-slate-800">
-                <LocationInput
-                  label="乗りたいIC"
-                  placeholder="例: 鳴門"
-                  querySuffix="インターチェンジ"
-                  onSelect={setEntryIC}
-                />
-                <LocationInput
-                  label="降りたいIC"
-                  placeholder="例: 垂水"
-                  querySuffix="インターチェンジ"
-                  onSelect={setExitIC}
-                />
-              </div>
+            {!avoidHighway && (
+              <>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={useIC}
+                    onChange={(e) => handleUseICChange(e.target.checked)}
+                  />
+                  IC経由で下道ルートも指定する
+                </label>
+
+                {useIC && (
+                  <div className="ml-1 space-y-3 border-l-2 border-slate-200 pl-3 dark:border-slate-800">
+                    <LocationInput
+                      label="乗りたいIC"
+                      placeholder="例: 鳴門"
+                      querySuffix="インターチェンジ"
+                      onSelect={setEntryIC}
+                    />
+                    <LocationInput
+                      label="降りたいIC"
+                      placeholder="例: 垂水"
+                      querySuffix="インターチェンジ"
+                      onSelect={setExitIC}
+                    />
+                  </div>
+                )}
+              </>
             )}
 
             <button
               disabled={!canSearch || loading}
-              onClick={handleSearch}
+              onClick={() => runSearch()}
               className="w-full rounded-xl bg-[#196ee6] py-2 text-sm font-medium text-white disabled:opacity-40"
             >
               {loading ? "検索中..." : "ルートを検索"}
@@ -195,7 +237,12 @@ export default function Home() {
                   <li key={i}>
                     <div className="flex justify-between">
                       <span>
-                        {leg.kind === "highway" ? "高速区間" : "下道区間"} {i + 1}
+                        {leg.kind === "highway"
+                          ? "高速区間"
+                          : leg.kind === "route"
+                            ? "ルート"
+                            : "下道区間"}{" "}
+                        {i + 1}
                       </span>
                       <span>
                         {leg.distanceKm.toFixed(1)}km / {Math.round(leg.durationMin)}分
