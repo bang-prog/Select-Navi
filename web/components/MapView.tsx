@@ -49,7 +49,7 @@ export default function MapView({ legs, currentPosition, isNavigating, heading }
     if (!containerRef.current || mapRef.current) return;
     const map = new mapboxgl.Map({
       container: containerRef.current,
-      style: "mapbox://styles/mapbox/streets-v12",
+      style: "mapbox://styles/yo3bang/cmu8a0shf000w01r77bjuc78g",
       center: [135.5, 34.7],
       zoom: 7,
     });
