@@ -26,17 +26,26 @@ const NAVIGATION_ZOOM = 17;
 const NAVIGATION_PITCH = 60;
 
 function createMarkerElement(large: boolean): HTMLDivElement {
-  // 進行方向を指す矢印（三角形）。rotationAlignment: "map" と組み合わせて向きを表現する
+  // 現在地を車（上から見た形）で表現する。真上（北向き）を正面として作り、
+  // rotationAlignment: "map" と組み合わせて進行方向へ回転させる
   // ナビ中は現在地を見失わないよう、通常より一回り大きく表示する
-  const side = large ? 15 : 9;
-  const base = large ? 30 : 18;
+  const width = large ? 34 : 20;
+  const height = large ? 54 : 32;
   const el = document.createElement("div");
-  el.style.width = "0";
-  el.style.height = "0";
-  el.style.borderLeft = `${side}px solid transparent`;
-  el.style.borderRight = `${side}px solid transparent`;
-  el.style.borderBottom = `${base}px solid #196ee6`;
+  el.style.width = `${width}px`;
+  el.style.height = `${height}px`;
   el.style.filter = "drop-shadow(0 0 3px rgba(255,255,255,0.95))";
+  el.innerHTML = `
+    <svg width="${width}" height="${height}" viewBox="0 0 60 100" xmlns="http://www.w3.org/2000/svg">
+      <rect x="8" y="5" width="44" height="90" rx="14" fill="#196ee6" stroke="white" stroke-width="2" />
+      <rect x="14" y="14" width="32" height="16" rx="4" fill="#bcd7fb" />
+      <rect x="16" y="72" width="28" height="14" rx="4" fill="#bcd7fb" />
+      <rect x="1" y="18" width="7" height="16" rx="3" fill="#1f2430" />
+      <rect x="52" y="18" width="7" height="16" rx="3" fill="#1f2430" />
+      <rect x="1" y="64" width="7" height="16" rx="3" fill="#1f2430" />
+      <rect x="52" y="64" width="7" height="16" rx="3" fill="#1f2430" />
+    </svg>
+  `;
   return el;
 }
 
