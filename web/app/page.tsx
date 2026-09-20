@@ -152,12 +152,23 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f6f7f8] text-slate-900 dark:bg-[#111821] dark:text-slate-100">
+    <div className="min-h-screen bg-[#F2F7EA] text-[#22333B]">
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-[380px_1fr]">
         <div className="space-y-4">
-          <h1 className="text-xl font-bold">Select Navi</h1>
+          <h1
+            className="inline-block -rotate-2 text-xl text-[#22333B]"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
+            Select Navi
+          </h1>
 
-          <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+          <div className="relative space-y-3 rounded-2xl border-[2.5px] border-[#22333B] bg-white p-4">
+            <span
+              className="absolute -top-3 -right-2 rotate-6 rounded-full border-2 border-[#22333B] bg-[#FFD166] px-3 py-1 text-[10px] font-bold"
+              style={{ fontFamily: "var(--font-heading)" }}
+            >
+              GO!
+            </span>
             <div>
               <LocationInput
                 label="出発地"
@@ -169,38 +180,40 @@ export default function Home() {
                 type="button"
                 onClick={handleUseCurrentLocation}
                 disabled={locatingOrigin}
-                className="mt-1 text-xs font-medium text-[#196ee6] disabled:opacity-40"
+                className="mt-1 text-xs font-bold text-[#2EC4B6] disabled:opacity-40"
               >
                 {locatingOrigin ? "現在地を取得中..." : "📍現在地を出発地にする"}
               </button>
               {originLocateError && (
-                <p className="mt-1 text-xs text-red-600">{originLocateError}</p>
+                <p className="mt-1 text-xs text-[#E84A5F]">{originLocateError}</p>
               )}
             </div>
             <LocationInput label="目的地" placeholder="例: 亀岡駅" onSelect={setDestination} />
 
-            <label className="flex items-center gap-2 text-sm">
+            <label className="flex items-center gap-2 text-sm font-bold">
               <input
                 type="checkbox"
                 checked={avoidHighway}
                 onChange={(e) => handleAvoidHighwayChange(e.target.checked)}
+                className="h-4 w-4 accent-[#22333B]"
               />
               高速道路を使わない
             </label>
 
             {!avoidHighway && (
               <>
-                <label className="flex items-center gap-2 text-sm">
+                <label className="flex items-center gap-2 text-sm font-bold">
                   <input
                     type="checkbox"
                     checked={useIC}
                     onChange={(e) => handleUseICChange(e.target.checked)}
+                    className="h-4 w-4 accent-[#22333B]"
                   />
                   IC経由で下道ルートも指定する
                 </label>
 
                 {useIC && (
-                  <div className="ml-1 space-y-3 border-l-2 border-slate-200 pl-3 dark:border-slate-800">
+                  <div className="ml-1 space-y-3 border-l-2 border-[#22333B] pl-3">
                     <LocationInput
                       label="乗りたいIC"
                       placeholder="例: 鳴門"
@@ -221,21 +234,26 @@ export default function Home() {
             <button
               disabled={!canSearch || loading}
               onClick={() => runSearch()}
-              className="w-full rounded-xl bg-[#196ee6] py-2 text-sm font-medium text-white disabled:opacity-40"
+              className="w-full rounded-2xl border-[2.5px] border-[#22333B] bg-[#E84A5F] py-2 text-sm font-bold text-white disabled:opacity-40"
             >
               {loading ? "検索中..." : "ルートを検索"}
             </button>
 
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && <p className="text-sm font-bold text-[#E84A5F]">{error}</p>}
           </div>
 
           {route && (
-            <div className="space-y-2 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-              <h2 className="text-sm font-semibold">ルート概要</h2>
+            <div className="space-y-2 rounded-2xl border-[2.5px] border-[#22333B] bg-white p-4">
+              <h2
+                className="inline-block -rotate-1 text-sm"
+                style={{ fontFamily: "var(--font-heading)" }}
+              >
+                ルート概要
+              </h2>
               <ul className="space-y-2 text-sm">
                 {route.legs.map((leg, i) => (
                   <li key={i}>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between font-bold">
                       <span>
                         {leg.kind === "highway"
                           ? "高速区間"
@@ -249,7 +267,7 @@ export default function Home() {
                       </span>
                     </div>
                     {leg.tollEstimate && (
-                      <div className="mt-1 rounded-lg bg-slate-50 p-2 text-xs dark:bg-slate-800">
+                      <div className="mt-1 rounded-xl border-2 border-[#22333B] bg-[#F7FBF3] p-2 text-xs">
                         <ul className="space-y-0.5">
                           {VEHICLE_CLASS_ORDER.map((vc) => (
                             <li key={vc} className="flex justify-between">
@@ -258,15 +276,13 @@ export default function Home() {
                             </li>
                           ))}
                         </ul>
-                        <p className="mt-1 text-slate-500 dark:text-slate-400">
-                          ※{leg.tollEstimate.note}
-                        </p>
+                        <p className="mt-1 text-[#5B6F73]">※{leg.tollEstimate.note}</p>
                       </div>
                     )}
                   </li>
                 ))}
               </ul>
-              <div className="flex justify-between border-t border-slate-200 pt-2 text-sm font-semibold dark:border-slate-800">
+              <div className="flex justify-between border-t-2 border-dotted border-[#22333B] pt-2 text-sm font-bold">
                 <span>合計</span>
                 <span>
                   {route.totalDistanceKm.toFixed(1)}km / {Math.round(route.totalDurationMin)}分
@@ -276,34 +292,34 @@ export default function Home() {
               {!isNavigating ? (
                 <button
                   onClick={start}
-                  className="mt-2 w-full rounded-xl bg-[#196ee6] py-2 text-sm font-medium text-white"
+                  className="mt-2 w-full rounded-2xl border-[2.5px] border-[#22333B] bg-[#2EC4B6] py-2 text-sm font-bold text-white"
                 >
                   ナビ開始
                 </button>
               ) : (
                 <button
                   onClick={stop}
-                  className="mt-2 w-full rounded-xl bg-red-600 py-2 text-sm font-medium text-white"
+                  className="mt-2 w-full rounded-2xl border-[2.5px] border-[#22333B] bg-[#E84A5F] py-2 text-sm font-bold text-white"
                 >
                   ナビ終了
                 </button>
               )}
 
               {isNavigating && isRerouting && (
-                <div className="mt-2 rounded-xl bg-amber-100 p-3 text-sm text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                <div className="mt-2 rounded-2xl border-2 border-[#22333B] bg-[#FFD166] p-3 text-sm font-bold">
                   ルートを外れたため、再検索しています…
                 </div>
               )}
 
               {isNavigating && currentStep && (
-                <div className="mt-2 rounded-xl bg-[#196ee6]/10 p-3 text-sm">
-                  <p className="font-medium">次の案内</p>
+                <div className="mt-2 rounded-2xl border-2 border-[#22333B] bg-[#F7FBF3] p-3 text-sm">
+                  <p className="font-bold">次の案内</p>
                   <p>{currentStep.instruction}</p>
                 </div>
               )}
 
               {geoError && (
-                <p className="mt-2 rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
+                <p className="mt-2 rounded-2xl border-2 border-[#22333B] bg-[#FDE8E8] p-3 text-sm font-bold text-[#E84A5F]">
                   {geoError}
                 </p>
               )}
@@ -311,7 +327,7 @@ export default function Home() {
           )}
         </div>
 
-        <div className="relative h-[70vh] lg:h-auto">
+        <div className="relative h-[70vh] overflow-hidden rounded-2xl border-[2.5px] border-[#22333B] lg:h-auto">
           <MapView
             legs={route?.legs ?? []}
             currentPosition={currentPosition}
@@ -320,8 +336,8 @@ export default function Home() {
           />
 
           {isNavigating && currentStep && (
-            <div className="absolute top-4 right-4 left-4 max-w-xs rounded-2xl bg-[#196ee6] p-3 text-white shadow-lg sm:left-auto">
-              <p className="text-xs font-medium text-white/80">
+            <div className="absolute top-4 right-4 left-4 max-w-xs rounded-2xl border-[2.5px] border-[#22333B] bg-[#2EC4B6] p-3 text-white shadow-[3px_3px_0_#22333B] sm:left-auto">
+              <p className="text-xs font-bold text-white/85">
                 {distanceToNextManeuver == null
                   ? "案内"
                   : distanceToNextManeuver < 30
@@ -333,7 +349,7 @@ export default function Home() {
           )}
 
           {newReport && currentPosition && (
-            <div className="absolute top-24 right-4 left-4 max-w-xs rounded-2xl bg-amber-500 p-3 text-sm font-medium text-white shadow-lg sm:left-auto">
+            <div className="absolute top-24 right-4 left-4 max-w-xs rounded-2xl border-[2.5px] border-[#22333B] bg-[#FFD166] p-3 text-sm font-bold text-[#22333B] shadow-[3px_3px_0_#22333B] sm:left-auto">
               約{Math.round(haversineMeters(currentPosition, [newReport.lng, newReport.lat]) / 100) * 100}
               m先で{REPORT_LABELS[newReport.type]}の通報がありました
             </div>

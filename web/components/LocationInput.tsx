@@ -58,9 +58,7 @@ export default function LocationInput({ label, placeholder, value, querySuffix, 
 
   return (
     <div className="relative">
-      <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-        {label}
-      </label>
+      <label className="mb-1 block text-sm font-bold text-[#22333B]">{label}</label>
       <input
         type="text"
         value={query}
@@ -71,14 +69,14 @@ export default function LocationInput({ label, placeholder, value, querySuffix, 
         }}
         onFocus={() => results.length > 0 && setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
-        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900"
+        className="w-full rounded-xl border-2 border-[#22333B] bg-[#F7FBF3] px-3 py-2 text-sm"
       />
       {open && results.length > 0 && (
-        <ul className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-900">
+        <ul className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-xl border-2 border-[#22333B] bg-white shadow-[3px_3px_0_#22333B]">
           {results.map((r, i) => (
             <li
               key={i}
-              className="cursor-pointer px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="cursor-pointer px-3 py-2 text-sm hover:bg-[#F2F7EA]"
               onMouseDown={() => {
                 selectedNameRef.current = r.name;
                 setQuery(r.name);

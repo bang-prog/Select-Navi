@@ -1,14 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Yusei_Magic, Zen_Maru_Gothic } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// 見出し用：手描き風フォント（ステッカーのロゴっぽさを出す）
+const yuseiMagic = Yusei_Magic({
+  variable: "--font-heading",
+  weight: "400",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+// 本文用：読みやすい丸ゴシック
+const zenMaruGothic = Zen_Maru_Gothic({
+  variable: "--font-body",
+  weight: ["500", "700"],
   subsets: ["latin"],
 });
 
@@ -30,7 +34,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="ja"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${yuseiMagic.variable} ${zenMaruGothic.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

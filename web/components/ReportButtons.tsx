@@ -12,9 +12,9 @@ export const REPORT_LABELS: Record<ReportType, string> = {
 const REPORT_ORDER: ReportType[] = ["accident", "jam", "construction"];
 
 const REPORT_COLORS: Record<ReportType, string> = {
-  accident: "bg-red-600 text-white",
-  jam: "bg-green-600 text-white",
-  construction: "bg-yellow-400 text-slate-900",
+  accident: "border-[#C0392B] text-[#C0392B]",
+  jam: "border-[#27824A] text-[#27824A]",
+  construction: "border-[#B8860B] text-[#B8860B]",
 };
 
 interface Props {
@@ -52,7 +52,7 @@ export default function ReportButtons({ currentPosition }: Props) {
   return (
     <div className="flex flex-col items-end gap-2">
       {message && (
-        <div className="rounded-lg bg-slate-900/90 px-3 py-1.5 text-xs text-white shadow">
+        <div className="rounded-xl border-2 border-[#22333B] bg-white px-3 py-1.5 text-xs font-bold text-[#22333B] shadow-[2px_2px_0_#22333B]">
           {message}
         </div>
       )}
@@ -63,7 +63,7 @@ export default function ReportButtons({ currentPosition }: Props) {
             type="button"
             onClick={() => handleReport(type)}
             disabled={submittingType !== null}
-            className={`rounded-full px-3 py-2 text-xs font-semibold shadow-lg disabled:opacity-50 ${REPORT_COLORS[type]}`}
+            className={`rounded-full border-2 border-dashed bg-white px-3 py-2 text-xs font-bold disabled:opacity-50 ${REPORT_COLORS[type]}`}
           >
             {submittingType === type ? "送信中…" : REPORT_LABELS[type]}
           </button>
