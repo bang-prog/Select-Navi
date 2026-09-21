@@ -7,7 +7,8 @@ import ReportButtons, { REPORT_LABELS } from "@/components/ReportButtons";
 import { useTurnByTurn } from "@/lib/useTurnByTurn";
 import { useNearbyReports } from "@/lib/useNearbyReports";
 import { describeGeolocationError, haversineMeters } from "@/lib/geolocation";
-import type { GeocodeResult, LatLng, RouteResult } from "@/lib/types";
+import { getSessionId } from "@/lib/session";
+import type { GeocodeResult, LatLng, RouteChoiceMode, RouteResult } from "@/lib/types";
 import { VEHICLE_CLASS_LABELS, type VehicleClass } from "@/lib/toll";
 
 const VEHICLE_CLASS_ORDER: VehicleClass[] = ["light", "standard", "medium", "large", "extraLarge"];
@@ -68,6 +69,59 @@ export default function Home() {
   } = useTurnByTurn(route?.legs ?? [], handleOffRoute);
 
   const { newReport, dismissNewReport } = useNearbyReports(currentPosition, isNavigating);
+
+  const [currentChoiceId, setCurrentChoiceId] = useState<string | null>(null);
+
+  // ナビ開始時のみ記録する（検索を試しただけの操作をノイズとして混ぜないため）。
+  // 記録に失敗してもナビ自体は継続させる
+  const handleStartNav = async () => {
+    start();
+    if (!origin || !destination || !route) return;
+    const mode: RouteChoiceMode = avoidHighway ? "avoidHighway" : useIC ? "ic" : "fastest";
+    try {
+      const res = await fetch("/api/route-choices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: getSessionId(),
+          mode,
+          origin: { name: origin.name, lat: origin.coordinates[1], lng: origin.coordinates[0] },
+          destination: {
+            name: destination.name,
+            lat: destination.coordinates[1],
+            lng: destination.coordinates[0],
+          },
+          entryIC:
+            useIC && entryIC
+              ? { name: entryIC.name, lat: entryIC.coordinates[1], lng: entryIC.coordinates[0] }
+              : undefined,
+          exitIC:
+            useIC && exitIC
+              ? { name: exitIC.name, lat: exitIC.coordinates[1], lng: exitIC.coordinates[0] }
+              : undefined,
+          totalDistanceKm: route.totalDistanceKm,
+          totalDurationMin: route.totalDurationMin,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) setCurrentChoiceId(data.choiceId);
+    } catch {
+      // 記録に失敗してもナビ自体は継続する
+    }
+  };
+
+  // ナビを最後まで使い切った＝そのルート選択が実際に有効だったという記録を残す
+  const handleStopNav = () => {
+    stop();
+    if (currentChoiceId) {
+      fetch("/api/route-choices", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ choiceId: currentChoiceId }),
+      }).catch(() => {});
+      setCurrentChoiceId(null);
+    }
+  };
 
   // 新着通報のアラートは一定時間で自動的に消す
   useEffect(() => {
@@ -291,14 +345,14 @@ export default function Home() {
 
               {!isNavigating ? (
                 <button
-                  onClick={start}
+                  onClick={handleStartNav}
                   className="mt-2 w-full rounded-2xl border-[2.5px] border-[#22333B] bg-[#2EC4B6] py-2 text-sm font-bold text-white"
                 >
                   ナビ開始
                 </button>
               ) : (
                 <button
-                  onClick={stop}
+                  onClick={handleStopNav}
                   className="mt-2 w-full rounded-2xl border-[2.5px] border-[#22333B] bg-[#E84A5F] py-2 text-sm font-bold text-white"
                 >
                   ナビ終了

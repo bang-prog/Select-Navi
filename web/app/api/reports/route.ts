@@ -7,9 +7,9 @@ import type { LatLng, Report, ReportType } from "@/lib/types";
 
 // 通報は2時間で自動的に無効化する（DynamoDBのTTLで実際に削除されるまでには
 // 多少のタイムラグがあるため、取得時にもexpiresAtで二重にフィルタする）
-const REPORT_LIFETIME_SECONDS = 60 * 60 * 2;
+const REPORT_LIFETIME_SECONDS = 60 * 15;
 // 「近く」とみなす半径
-const NEARBY_RADIUS_METERS = 5000;
+const NEARBY_RADIUS_METERS = 3000;
 const VALID_TYPES: ReportType[] = ["accident", "jam", "construction"];
 
 export async function POST(req: NextRequest) {
