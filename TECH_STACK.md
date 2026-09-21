@@ -18,7 +18,7 @@
 | 高速料金の概算 | 自前実装（NEXCO標準料金式） | 詳細は下記「高速料金表示について」参照 |
 | インフラ | AWS Amplify Hosting | 画面・APIルートのホスティングのみ利用。Gen 2の自動生成バックエンドは不使用（詳細は下記「通報機能のデータ永続化について」参照） |
 | API | Next.js API Routes | Amplify Hosting内のLambdaで実行される |
-| データベース | DynamoDB | AWS SDK（`@aws-sdk/lib-dynamodb`）からAPI Routeで直接読み書き。TTLで古いデータを自動失効 |
+| データベース | DynamoDB | AWS SDK（`@aws-sdk/lib-dynamodb`）からAPI Routeで直接読み書き。通報テーブル（`SelectNaviRouteChoices`とは別）はTTLで古いデータを自動失効。ルート選択実績テーブル（`SelectNaviRouteChoices`）はTTLなしで恒久保存 |
 | 認証（将来） | Cognito | MVP時点では未使用、ユーザー増加時に追加 |
 | 実装言語 | TypeScript（フロント・バックエンド共通） | Next.jsのAPI Routesも含め、フロント・バックエンドを同一言語に統一 |
 
@@ -65,6 +65,19 @@
 - `web/app/api/reports/route.ts`：POST（通報の登録）、GET（緯度経度を受け取り、有効な通報を全件取得して距離で絞り込み）を実装。件数がまだ小規模なため、地理検索エンジンは使わず簡易的な全件スキャン＋距離計算で済ませている
 
 将来ユーザーが増えて複数のデータ機能（お気に入り保存・ログイン等）が必要になった段階で、Amplify Gen2への切り替えを再検討する。
+
+### ルート選択実績データの記録機能（IC指定/高速回避のログ）
+
+将来ユーザー獲得・マネタイズを考える上で「どのIC区間・どの下道区間が実際に選ばれ、走り切られたか」という実績データ自体が、NAVITIMEやYahoo!カーナビの自動計算アルゴリズムにはない独自資産になり得るという方針のもと、その土台となる記録機能を実装した。
+
+**実装内容**：
+- DynamoDBテーブル`SelectNaviRouteChoices`を追加作成（パーティションキー：`choiceId`）。通報テーブルとは異なり**TTLは設定せず恒久的に保存**する（分析対象のデータ資産のため、時間経過で消えては困る）
+- ログイン機能がないため、`web/lib/session.ts`で端末ごとの匿名ID（UUID）をlocalStorageに発行し、同じ端末の傾向を追跡できるようにした
+- `web/app/api/route-choices/route.ts`：
+  - `POST`：ルート選択の内容（出発地・目的地・方式「IC指定/高速回避/最速」・IC区間・距離時間）を記録
+  - `PATCH`：ナビを最後まで使い切った場合に`completed: true`を記録
+- 記録のタイミングは**「ルートを検索」ボタンではなく「ナビ開始」ボタン**にした。検索は条件を変えて何度も試すノイズが混ざりやすいのに対し、「ナビ開始」は「実際にこのルートで走る」という意思表示であり、さらに「ナビ終了」まで到達したかどうかで、その選択が本当に有効だったかの信頼度を判断できるため
+- IAMポリシー（`SelectNaviReportsPolicy`）に、この新テーブルへの`PutItem`/`UpdateItem`権限を追加
 
 ### TypeScriptに統一
 - フロントエンド（Next.js）とAPI Routeを同じ言語にすることで、一人開発での認知負荷を下げる
@@ -130,10 +143,12 @@ flowchart TB
                 Geocode["geocode/route.ts<br/>地名→座標変換"]
                 Directions["directions/route.ts<br/>ルート計算"]
                 Toll["toll.ts<br/>高速料金の概算"]
-                Reports["reports/route.ts<br/>事故・渋滞・工事の通報<br/>（画面のボタンUIは未実装）"]
+                Reports["reports/route.ts<br/>事故・渋滞・工事の通報"]
+                RouteChoices["route-choices/route.ts<br/>IC指定・高速回避の<br/>実績記録"]
             end
         end
-        DynamoDB[("DynamoDB<br/>SelectNavi-Reports<br/>（TTLで2時間後に自動失効）")]
+        DynamoDB[("DynamoDB<br/>SelectNavi-Reports<br/>（TTLで自動失効）")]
+        RouteChoicesTable[("DynamoDB<br/>SelectNaviRouteChoices<br/>（TTLなし・恒久保存）")]
         subgraph EXT["外部サービス（今まさに使っている）"]
             direction TB
             Google[("Google Places API")]
@@ -157,10 +172,11 @@ flowchart TB
     Directions -- "座標→ルート" --> Mapbox
     MapView -- "地図タイル取得" --> Mapbox
     Reports -- "AWS SDKで直接読み書き<br/>(IAMロールで許可)" --> DynamoDB
+    RouteChoices -- "AWS SDKで直接読み書き<br/>(IAMロールで許可)" --> RouteChoicesTable
 
     BE -. "会員機能が要る時はここへ接続" .-> Cognito
 
-    class Page,LocationInput,MapView,Geocode,Directions,Toll,Reports,Amplify,DynamoDB current;
+    class Page,LocationInput,MapView,Geocode,Directions,Toll,Reports,RouteChoices,Amplify,DynamoDB,RouteChoicesTable current;
     class GitHub infra;
     class Google,Mapbox external;
     class Cognito future;
@@ -170,7 +186,7 @@ flowchart TB
 
 - **上段（青＋緑の箱）はすべて実際にAWS上で本番稼働中**。GitHubにpushすると①Amplifyが自動でビルド・デプロイし、公開URL（`https://main.dmm1g4zudj9sa.amplifyapp.com`）で誰でもアクセスできる状態
 - **画面ファイルとAPIルートは同じAmplify Hostingの中で動いている**。地名検索やルート計算のAPIルート（`geocode/route.ts`等）も、Amplifyが内部的に管理するLambda上で実行されている（自分たちで個別にLambdaを作ったわけではない）
-- **DynamoDBが初めて「現在稼働中」の箱に入った**：事故・渋滞・工事の通報データを保存するテーブルを実際に作成し、`reports/route.ts`がAWS SDKで直接読み書きしている。ただし今できているのはこのバックエンドAPIまでで、**画面上の「事故」「渋滞」「工事」ボタンや、近くの通報を取得して表示する仕組みはまだ未実装**
+- **DynamoDBのテーブルが2つに増えた**：①事故・渋滞・工事の通報データ（`reports/route.ts`、TTLで自動失効）に加えて、②IC指定・高速回避の選択実績データ（`route-choices/route.ts`、TTLなしで恒久保存）を記録するようになった。②は「ナビ開始」を押した時点の選択内容と、「ナビ終了」まで到達したかを記録しており、将来的に「実際に多くのユーザーが選んで走り切ったIC組み合わせ」を可視化する機能の土台となるデータ資産
 - **今使っている外部サービスは黄色の2つだけ**：Google（地名検索用）とMapbox（地図表示・ルート計算用）。どちらも自分たちで契約したAPIキーを使っており、悪用防止のためAPIの利用範囲を制限済み
 - **下段（点線・グレー）に残っているのは会員ログイン機能（Cognito）だけ**。これが必要になるのは「ユーザーごとのお気に入り」のような、個人に紐づくデータを扱う機能を作る時
 - ユーザーの操作の流れは番号順：①GitHubにpush（開発者の作業）→②ユーザーが公開URLにアクセス→③検索欄に地名を入力→④「ルートを検索」を押す→⑤高速区間なら料金も自動計算
