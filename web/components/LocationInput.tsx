@@ -56,27 +56,49 @@ export default function LocationInput({ label, placeholder, value, querySuffix, 
     };
   }, [query, querySuffix]);
 
+  const filled = Boolean(query);
+
   return (
     <div className="relative">
-      <label className="mb-1 block text-sm font-bold text-[#22333B]">{label}</label>
-      <input
-        type="text"
-        value={query}
-        placeholder={placeholder}
-        onChange={(e) => {
-          selectedNameRef.current = null;
-          setQuery(e.target.value);
-        }}
-        onFocus={() => results.length > 0 && setOpen(true)}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
-        className="w-full rounded-xl border-2 border-[#22333B] bg-[#F7FBF3] px-3 py-2 text-sm"
-      />
+      {label && (
+        <label
+          className="mb-2 block text-[9px] tracking-[0.2em] text-[#6b6b80] uppercase"
+          style={{ fontFamily: "var(--font-mono)" }}
+        >
+          {label}
+        </label>
+      )}
+      <div className="relative">
+        <span
+          className="pointer-events-none absolute top-1/2 left-[14px] h-1.5 w-1.5 -translate-y-1/2 rounded-full"
+          style={{
+            background: filled ? "#FF6004" : "#aaa",
+            boxShadow: filled ? "0 0 8px #FF6004" : "none",
+          }}
+        />
+        <input
+          type="text"
+          value={query}
+          placeholder={placeholder}
+          onChange={(e) => {
+            selectedNameRef.current = null;
+            setQuery(e.target.value);
+          }}
+          onFocus={() => results.length > 0 && setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+          className="w-full rounded-md border bg-[#DCD4D4] py-3 pr-4 pl-8 text-[13px] text-[#333] outline-none transition focus:border-[#FF6004]/60 focus:shadow-[0_0_0_3px_rgba(255,96,4,0.08)]"
+          style={{
+            fontFamily: "var(--font-mono)",
+            borderColor: filled ? "rgba(255,96,4,0.4)" : "rgba(0,0,0,0.1)",
+          }}
+        />
+      </div>
       {open && results.length > 0 && (
-        <ul className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-xl border-2 border-[#22333B] bg-white shadow-[3px_3px_0_#22333B]">
+        <ul className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md border border-black/10 bg-[#FCF9E9] shadow-[0_4px_16px_rgba(0,0,0,0.12)]">
           {results.map((r, i) => (
             <li
               key={i}
-              className="cursor-pointer px-3 py-2 text-sm hover:bg-[#F2F7EA]"
+              className="cursor-pointer px-3 py-2 text-sm hover:bg-[#FF6004]/[0.06]"
               onMouseDown={() => {
                 selectedNameRef.current = r.name;
                 setQuery(r.name);

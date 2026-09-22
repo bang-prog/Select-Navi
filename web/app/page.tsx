@@ -13,6 +13,45 @@ import { VEHICLE_CLASS_LABELS, type VehicleClass } from "@/lib/toll";
 
 const VEHICLE_CLASS_ORDER: VehicleClass[] = ["light", "standard", "medium", "large", "extraLarge"];
 
+function SectionLabel({ children }: { children: string }) {
+  return (
+    <div
+      className="mb-3 text-[9px] tracking-[0.2em] text-[#6b6b80] uppercase"
+      style={{ fontFamily: "var(--font-mono)" }}
+    >
+      ── {children}
+    </div>
+  );
+}
+
+function Toggle({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+}) {
+  return (
+    <label className="flex cursor-pointer items-center gap-3">
+      <span
+        onClick={() => onChange(!checked)}
+        className={`relative h-5 w-9 flex-shrink-0 rounded-full border transition-colors ${
+          checked ? "border-[#FF6004]/40 bg-[#FF6004]/15" : "border-black/10 bg-[#DCD4D4]"
+        }`}
+      >
+        <span
+          className={`absolute top-0.5 h-3.5 w-3.5 rounded-full transition-all ${
+            checked ? "left-[19px] bg-[#FF6004] shadow-[0_0_8px_rgba(255,96,4,0.5)]" : "left-0.5 bg-[#aaa]"
+          }`}
+        />
+      </span>
+      <span className={`text-[13px] ${checked ? "text-[#2a2a33]" : "text-[#888]"}`}>{label}</span>
+    </label>
+  );
+}
+
 export default function Home() {
   const [origin, setOrigin] = useState<GeocodeResult | null>(null);
   const [destination, setDestination] = useState<GeocodeResult | null>(null);
@@ -205,27 +244,47 @@ export default function Home() {
     );
   };
 
-  return (
-    <div className="min-h-screen bg-[#F2F7EA] text-[#22333B]">
-      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-[380px_1fr]">
-        <div className="space-y-4">
-          <h1
-            className="inline-block -rotate-2 text-xl text-[#22333B]"
-            style={{ fontFamily: "var(--font-heading)" }}
-          >
-            Select Navi
-          </h1>
+  const statusText = isNavigating ? "NAVIGATING" : loading ? "SEARCHING..." : "SYSTEM READY";
 
-          <div className="relative space-y-3 rounded-2xl border-[2.5px] border-[#22333B] bg-white p-4">
-            <span
-              className="absolute -top-3 -right-2 rotate-6 rounded-full border-2 border-[#22333B] bg-[#FFD166] px-3 py-1 text-[10px] font-bold"
-              style={{ fontFamily: "var(--font-heading)" }}
+  return (
+    <div className="min-h-screen bg-[#FCF9E9] text-[#2a2a33]">
+      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-[400px_1fr]">
+        <div className="space-y-5">
+          <div>
+            <p
+              className="mb-2 text-[10px] tracking-[0.2em] opacity-80"
+              style={{ fontFamily: "var(--font-eyebrow)" }}
             >
-              GO!
-            </span>
+              NAVIGATION SYSTEM
+            </p>
+            <h1
+              className="text-2xl leading-none font-bold text-[#FF6004]"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              SELECT
+              <br />
+              NAVI
+            </h1>
+            <div className="mt-3 flex items-center gap-1.5">
+              <span
+                className={`h-1.5 w-1.5 rounded-full bg-[#FF6004] shadow-[0_0_6px_#FF6004] ${loading || isNavigating ? "animate-pulse" : ""}`}
+              />
+              <span
+                className="text-[10px] tracking-[0.1em] text-[#6b6b80]"
+                style={{ fontFamily: "var(--font-mono)" }}
+              >
+                {statusText}
+              </span>
+            </div>
+          </div>
+
+          <div className="h-px bg-black/[0.07]" />
+
+          <div className="space-y-5">
             <div>
+              <SectionLabel>出発地</SectionLabel>
               <LocationInput
-                label="出発地"
+                label=""
                 placeholder="例: 徳島駅"
                 value={origin?.name}
                 onSelect={setOrigin}
@@ -234,80 +293,80 @@ export default function Home() {
                 type="button"
                 onClick={handleUseCurrentLocation}
                 disabled={locatingOrigin}
-                className="mt-1 text-xs font-bold text-[#2EC4B6] disabled:opacity-40"
+                className="mt-2 text-[10px] tracking-[0.05em] text-[#FF6004] disabled:opacity-40"
+                style={{ fontFamily: "var(--font-mono)" }}
               >
-                {locatingOrigin ? "現在地を取得中..." : "📍現在地を出発地にする"}
+                {locatingOrigin ? "現在地を取得中..." : "◎ 現在地を出発地にする"}
               </button>
               {originLocateError && (
-                <p className="mt-1 text-xs text-[#E84A5F]">{originLocateError}</p>
+                <p className="mt-1 text-xs text-[#c0392b]">{originLocateError}</p>
               )}
             </div>
-            <LocationInput label="目的地" placeholder="例: 亀岡駅" onSelect={setDestination} />
 
-            <label className="flex items-center gap-2 text-sm font-bold">
-              <input
-                type="checkbox"
-                checked={avoidHighway}
-                onChange={(e) => handleAvoidHighwayChange(e.target.checked)}
-                className="h-4 w-4 accent-[#22333B]"
-              />
-              高速道路を使わない
-            </label>
+            <div>
+              <SectionLabel>目的地</SectionLabel>
+              <LocationInput label="" placeholder="例: 亀岡駅" onSelect={setDestination} />
+            </div>
 
-            {!avoidHighway && (
-              <>
-                <label className="flex items-center gap-2 text-sm font-bold">
-                  <input
-                    type="checkbox"
-                    checked={useIC}
-                    onChange={(e) => handleUseICChange(e.target.checked)}
-                    className="h-4 w-4 accent-[#22333B]"
-                  />
-                  IC経由で下道ルートも指定する
-                </label>
+            <div className="h-px bg-black/[0.07]" />
 
-                {useIC && (
-                  <div className="ml-1 space-y-3 border-l-2 border-[#22333B] pl-3">
-                    <LocationInput
-                      label="乗りたいIC"
-                      placeholder="例: 鳴門"
-                      querySuffix="インターチェンジ"
-                      onSelect={setEntryIC}
-                    />
-                    <LocationInput
-                      label="降りたいIC"
-                      placeholder="例: 垂水"
-                      querySuffix="インターチェンジ"
-                      onSelect={setExitIC}
-                    />
-                  </div>
+            <div>
+              <SectionLabel>ルート設定</SectionLabel>
+              <div className="space-y-3">
+                <Toggle
+                  checked={avoidHighway}
+                  onChange={handleAvoidHighwayChange}
+                  label="高速道路を使わない"
+                />
+                {!avoidHighway && (
+                  <Toggle checked={useIC} onChange={handleUseICChange} label="IC経由で下道ルートも指定する" />
                 )}
-              </>
-            )}
+              </div>
+
+              {!avoidHighway && useIC && (
+                <div className="mt-3 ml-1 space-y-3 border-l border-[#FF6004]/25 pl-3">
+                  <LocationInput
+                    label="乗りたいIC"
+                    placeholder="例: 鳴門"
+                    querySuffix="インターチェンジ"
+                    onSelect={setEntryIC}
+                  />
+                  <LocationInput
+                    label="降りたいIC"
+                    placeholder="例: 垂水"
+                    querySuffix="インターチェンジ"
+                    onSelect={setExitIC}
+                  />
+                </div>
+              )}
+            </div>
 
             <button
               disabled={!canSearch || loading}
               onClick={() => runSearch()}
-              className="w-full rounded-2xl border-[2.5px] border-[#22333B] bg-[#E84A5F] py-2 text-sm font-bold text-white disabled:opacity-40"
+              className="w-full rounded-md py-3.5 text-xs font-semibold tracking-[0.15em] text-white uppercase transition disabled:cursor-not-allowed disabled:bg-[#DCD4D4] disabled:text-[#aaa] disabled:shadow-none"
+              style={{
+                fontFamily: "var(--font-mono)",
+                background: canSearch ? "linear-gradient(135deg, #FF6004 0%, #ff8c42 100%)" : undefined,
+                boxShadow: canSearch ? "0 0 30px rgba(255,96,4,0.25), 0 4px 16px rgba(255,96,4,0.15)" : undefined,
+              }}
             >
-              {loading ? "検索中..." : "ルートを検索"}
+              {loading ? "SEARCHING..." : "ルートを検索"}
             </button>
 
-            {error && <p className="text-sm font-bold text-[#E84A5F]">{error}</p>}
+            {error && <p className="text-sm font-bold text-[#c0392b]">{error}</p>}
           </div>
 
           {route && (
-            <div className="space-y-2 rounded-2xl border-[2.5px] border-[#22333B] bg-white p-4">
-              <h2
-                className="inline-block -rotate-1 text-sm"
-                style={{ fontFamily: "var(--font-heading)" }}
-              >
-                ルート概要
-              </h2>
+            <div className="space-y-3 border-t border-black/[0.07] pt-5">
+              <SectionLabel>ルート概要</SectionLabel>
               <ul className="space-y-2 text-sm">
                 {route.legs.map((leg, i) => (
                   <li key={i}>
-                    <div className="flex justify-between font-bold">
+                    <div
+                      className="flex justify-between text-xs tracking-[0.05em] text-[#6b6b80] uppercase"
+                      style={{ fontFamily: "var(--font-mono)" }}
+                    >
                       <span>
                         {leg.kind === "highway"
                           ? "高速区間"
@@ -321,7 +380,7 @@ export default function Home() {
                       </span>
                     </div>
                     {leg.tollEstimate && (
-                      <div className="mt-1 rounded-xl border-2 border-[#22333B] bg-[#F7FBF3] p-2 text-xs">
+                      <div className="mt-1 rounded-md border border-black/10 bg-[#F5F2E3] p-2 text-xs">
                         <ul className="space-y-0.5">
                           {VEHICLE_CLASS_ORDER.map((vc) => (
                             <li key={vc} className="flex justify-between">
@@ -330,58 +389,102 @@ export default function Home() {
                             </li>
                           ))}
                         </ul>
-                        <p className="mt-1 text-[#5B6F73]">※{leg.tollEstimate.note}</p>
+                        <p className="mt-1 text-[#6b6b80]">※{leg.tollEstimate.note}</p>
                       </div>
                     )}
                   </li>
                 ))}
               </ul>
-              <div className="flex justify-between border-t-2 border-dotted border-[#22333B] pt-2 text-sm font-bold">
-                <span>合計</span>
-                <span>
-                  {route.totalDistanceKm.toFixed(1)}km / {Math.round(route.totalDurationMin)}分
-                </span>
+
+              <div className="flex items-center justify-between rounded-md border border-[#FF6004]/20 bg-[#FF6004]/[0.06] px-4 py-3">
+                <div>
+                  <div
+                    className="mb-1 text-[9px] tracking-[0.1em] text-[#6b6b80] uppercase"
+                    style={{ fontFamily: "var(--font-mono)" }}
+                  >
+                    推定所要時間
+                  </div>
+                  <div
+                    className="text-xl font-bold text-[#FF6004]"
+                    style={{ fontFamily: "var(--font-mono)" }}
+                  >
+                    {Math.round(route.totalDurationMin)}分
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div
+                    className="mb-1 text-[9px] tracking-[0.1em] text-[#6b6b80] uppercase"
+                    style={{ fontFamily: "var(--font-mono)" }}
+                  >
+                    距離
+                  </div>
+                  <div className="text-xl font-bold" style={{ fontFamily: "var(--font-mono)" }}>
+                    {route.totalDistanceKm.toFixed(1)}km
+                  </div>
+                </div>
               </div>
 
               {!isNavigating ? (
                 <button
                   onClick={handleStartNav}
-                  className="mt-2 w-full rounded-2xl border-[2.5px] border-[#22333B] bg-[#2EC4B6] py-2 text-sm font-bold text-white"
+                  className="w-full rounded-md py-3 text-xs font-semibold tracking-[0.15em] text-white uppercase"
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    background: "linear-gradient(135deg, #FF6004 0%, #ff8c42 100%)",
+                    boxShadow: "0 0 20px rgba(255,96,4,0.2)",
+                  }}
                 >
                   ナビ開始
                 </button>
               ) : (
                 <button
                   onClick={handleStopNav}
-                  className="mt-2 w-full rounded-2xl border-[2.5px] border-[#22333B] bg-[#E84A5F] py-2 text-sm font-bold text-white"
+                  className="w-full rounded-md border border-[#FF6004]/40 bg-transparent py-3 text-xs font-semibold tracking-[0.15em] text-[#FF6004] uppercase"
+                  style={{ fontFamily: "var(--font-mono)" }}
                 >
                   ナビ終了
                 </button>
               )}
 
               {isNavigating && isRerouting && (
-                <div className="mt-2 rounded-2xl border-2 border-[#22333B] bg-[#FFD166] p-3 text-sm font-bold">
+                <div
+                  className="rounded-md border border-black/10 bg-[#F5F2E3] p-3 text-xs tracking-[0.02em]"
+                  style={{ fontFamily: "var(--font-mono)" }}
+                >
                   ルートを外れたため、再検索しています…
                 </div>
               )}
 
               {isNavigating && currentStep && (
-                <div className="mt-2 rounded-2xl border-2 border-[#22333B] bg-[#F7FBF3] p-3 text-sm">
-                  <p className="font-bold">次の案内</p>
+                <div className="rounded-md border border-black/10 bg-[#F5F2E3] p-3 text-sm">
+                  <p
+                    className="mb-1 text-[9px] tracking-[0.15em] text-[#6b6b80] uppercase"
+                    style={{ fontFamily: "var(--font-mono)" }}
+                  >
+                    次の案内
+                  </p>
                   <p>{currentStep.instruction}</p>
                 </div>
               )}
 
               {geoError && (
-                <p className="mt-2 rounded-2xl border-2 border-[#22333B] bg-[#FDE8E8] p-3 text-sm font-bold text-[#E84A5F]">
+                <p
+                  className="rounded-md border border-[#c0392b]/30 bg-[#c0392b]/[0.06] p-3 text-sm font-bold text-[#c0392b]"
+                  style={{ fontFamily: "var(--font-mono)" }}
+                >
                   {geoError}
                 </p>
               )}
             </div>
           )}
+
+          <div className="flex items-center justify-between border-t border-black/[0.07] pt-4 text-[9px] tracking-[0.1em] text-[#c9c1c1]" style={{ fontFamily: "var(--font-mono)" }}>
+            <span>POWERED BY MAPBOX</span>
+            <span>v2.0</span>
+          </div>
         </div>
 
-        <div className="relative h-[70vh] overflow-hidden rounded-2xl border-[2.5px] border-[#22333B] lg:h-auto">
+        <div className="relative h-[70vh] overflow-hidden rounded-md border border-black/10 lg:h-auto">
           <MapView
             legs={route?.legs ?? []}
             currentPosition={currentPosition}
@@ -390,20 +493,23 @@ export default function Home() {
           />
 
           {isNavigating && currentStep && (
-            <div className="absolute top-4 right-4 left-4 max-w-xs rounded-2xl border-[2.5px] border-[#22333B] bg-[#2EC4B6] p-3 text-white shadow-[3px_3px_0_#22333B] sm:left-auto">
-              <p className="text-xs font-bold text-white/85">
+            <div className="absolute top-4 right-4 left-4 max-w-xs rounded-md border border-black/10 bg-[#FCF9E9]/95 p-3 shadow-[0_4px_16px_rgba(0,0,0,0.12)] backdrop-blur-sm sm:left-auto">
+              <p
+                className="mb-1 text-[9px] tracking-[0.15em] text-[#FF6004] uppercase"
+                style={{ fontFamily: "var(--font-mono)" }}
+              >
                 {distanceToNextManeuver == null
                   ? "案内"
                   : distanceToNextManeuver < 30
                     ? "まもなく"
                     : `${(Math.round(distanceToNextManeuver / 10) * 10).toLocaleString()}m先`}
               </p>
-              <p className="text-base font-bold leading-snug">{currentStep.instruction}</p>
+              <p className="text-base leading-snug font-bold">{currentStep.instruction}</p>
             </div>
           )}
 
           {newReport && currentPosition && (
-            <div className="absolute top-24 right-4 left-4 max-w-xs rounded-2xl border-[2.5px] border-[#22333B] bg-[#FFD166] p-3 text-sm font-bold text-[#22333B] shadow-[3px_3px_0_#22333B] sm:left-auto">
+            <div className="absolute top-24 right-4 left-4 max-w-xs rounded-md border border-[#FF6004]/30 bg-[#FCF9E9]/95 p-3 text-sm font-bold shadow-[0_4px_16px_rgba(0,0,0,0.12)] backdrop-blur-sm sm:left-auto">
               約{Math.round(haversineMeters(currentPosition, [newReport.lng, newReport.lat]) / 100) * 100}
               m先で{REPORT_LABELS[newReport.type]}の通報がありました
             </div>

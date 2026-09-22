@@ -9,9 +9,9 @@ import { distanceToPolylineMeters, trimPolylineFromPoint } from "@/lib/geolocati
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "";
 
 const LEG_COLORS: Record<string, string> = {
-  local: "#196ee6",
-  highway: "#e63946",
-  route: "#196ee6",
+  local: "#FF6004",
+  highway: "#2a2a33",
+  route: "#FF6004",
 };
 
 interface Props {
@@ -37,13 +37,13 @@ function createMarkerElement(large: boolean): HTMLDivElement {
   el.style.filter = "drop-shadow(0 0 3px rgba(255,255,255,0.95))";
   el.innerHTML = `
     <svg width="${width}" height="${height}" viewBox="0 0 60 100" xmlns="http://www.w3.org/2000/svg">
-      <rect x="8" y="5" width="44" height="90" rx="14" fill="#196ee6" stroke="white" stroke-width="2" />
-      <rect x="14" y="14" width="32" height="16" rx="4" fill="#bcd7fb" />
-      <rect x="16" y="72" width="28" height="14" rx="4" fill="#bcd7fb" />
-      <rect x="1" y="18" width="7" height="16" rx="3" fill="#1f2430" />
-      <rect x="52" y="18" width="7" height="16" rx="3" fill="#1f2430" />
-      <rect x="1" y="64" width="7" height="16" rx="3" fill="#1f2430" />
-      <rect x="52" y="64" width="7" height="16" rx="3" fill="#1f2430" />
+      <rect x="8" y="5" width="44" height="90" rx="14" fill="#FF6004" stroke="white" stroke-width="2" />
+      <rect x="14" y="14" width="32" height="16" rx="4" fill="#FCF9E9" />
+      <rect x="16" y="72" width="28" height="14" rx="4" fill="#FCF9E9" />
+      <rect x="1" y="18" width="7" height="16" rx="3" fill="#2a2a33" />
+      <rect x="52" y="18" width="7" height="16" rx="3" fill="#2a2a33" />
+      <rect x="1" y="64" width="7" height="16" rx="3" fill="#2a2a33" />
+      <rect x="52" y="64" width="7" height="16" rx="3" fill="#2a2a33" />
     </svg>
   `;
   return el;

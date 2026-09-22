@@ -12,9 +12,9 @@ export const REPORT_LABELS: Record<ReportType, string> = {
 const REPORT_ORDER: ReportType[] = ["accident", "jam", "construction"];
 
 const REPORT_COLORS: Record<ReportType, string> = {
-  accident: "border-[#C0392B] text-[#C0392B]",
-  jam: "border-[#27824A] text-[#27824A]",
-  construction: "border-[#B8860B] text-[#B8860B]",
+  accident: "border-[#c0392b]/40 text-[#c0392b]",
+  jam: "border-[#27824A]/40 text-[#27824A]",
+  construction: "border-[#B8860B]/40 text-[#B8860B]",
 };
 
 interface Props {
@@ -52,7 +52,10 @@ export default function ReportButtons({ currentPosition }: Props) {
   return (
     <div className="flex flex-col items-end gap-2">
       {message && (
-        <div className="rounded-xl border-2 border-[#22333B] bg-white px-3 py-1.5 text-xs font-bold text-[#22333B] shadow-[2px_2px_0_#22333B]">
+        <div
+          className="rounded-md border border-black/10 bg-[#FCF9E9]/95 px-3 py-1.5 text-xs font-bold text-[#2a2a33] shadow-[0_2px_8px_rgba(0,0,0,0.12)] backdrop-blur-sm"
+          style={{ fontFamily: "var(--font-mono)" }}
+        >
           {message}
         </div>
       )}
@@ -63,7 +66,8 @@ export default function ReportButtons({ currentPosition }: Props) {
             type="button"
             onClick={() => handleReport(type)}
             disabled={submittingType !== null}
-            className={`rounded-full border-2 border-dashed bg-white px-3 py-2 text-xs font-bold disabled:opacity-50 ${REPORT_COLORS[type]}`}
+            className={`rounded-md border bg-[#FCF9E9]/95 px-3 py-2 text-[11px] font-semibold tracking-[0.05em] uppercase backdrop-blur-sm disabled:opacity-50 ${REPORT_COLORS[type]}`}
+            style={{ fontFamily: "var(--font-mono)" }}
           >
             {submittingType === type ? "送信中…" : REPORT_LABELS[type]}
           </button>

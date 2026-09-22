@@ -1,18 +1,32 @@
 import type { Metadata, Viewport } from "next";
-import { Yusei_Magic, Zen_Maru_Gothic } from "next/font/google";
+import { Anta, Jaro, JetBrains_Mono, Outfit } from "next/font/google";
 import "./globals.css";
 
-// 見出し用：手描き風フォント（ステッカーのロゴっぽさを出す）
-const yuseiMagic = Yusei_Magic({
-  variable: "--font-heading",
+// タイトルロゴ用：システム/計器盤風の角ばったフォント
+const anta = Anta({
+  variable: "--font-display",
   weight: "400",
   subsets: ["latin"],
 });
 
-// 本文用：読みやすい丸ゴシック
-const zenMaruGothic = Zen_Maru_Gothic({
+// アイキャッチ用の小さなラベル（"NAVIGATION SYSTEM"等）
+const jaro = Jaro({
+  variable: "--font-eyebrow",
+  weight: "400",
+  subsets: ["latin"],
+});
+
+// ラベル・入力欄・ボタンなど、HUD的な質感を出す等幅フォント
+const jetBrainsMono = JetBrains_Mono({
+  variable: "--font-mono",
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin"],
+});
+
+// 本文用の可読フォント
+const outfit = Outfit({
   variable: "--font-body",
-  weight: ["500", "700"],
+  weight: ["400", "500", "600"],
   subsets: ["latin"],
 });
 
@@ -27,14 +41,14 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#196ee6",
+  themeColor: "#FCF9E9",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="ja"
-      className={`${yuseiMagic.variable} ${zenMaruGothic.variable} h-full antialiased`}
+      className={`${anta.variable} ${jaro.variable} ${jetBrainsMono.variable} ${outfit.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
