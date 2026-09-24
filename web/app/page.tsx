@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import LocationInput from "@/components/LocationInput";
 import MapView from "@/components/MapView";
 import ReportButtons, { REPORT_LABELS } from "@/components/ReportButtons";
@@ -165,6 +165,14 @@ export default function Home() {
       setCurrentChoiceId(null);
     }
   };
+
+  // 到着予定時刻は、検索・再ルートのたびに一度だけ計算して固定する。
+  // 描画のたびにDate.now()を使うと、ナビ中の再描画（現在地更新）ごとに
+  // 「今＋所要時間」で再計算され、時間経過とともに到着予定が後ろへずれ続けてしまう
+  const arrivalTime = useMemo(() => {
+    if (!route) return null;
+    return new Date(Date.now() + route.totalDurationMin * 60000);
+  }, [route]);
 
   // 新着通報のアラートは一定時間で自動的に消す
   useEffect(() => {
@@ -428,16 +436,15 @@ export default function Home() {
                 </div>
               </div>
 
-              <p
-                className="text-right text-xs tracking-[0.05em] text-[#6b6b80]"
-                style={{ fontFamily: "var(--font-mono)" }}
-              >
-                到着予定：
-                {new Date(Date.now() + route.totalDurationMin * 60000).toLocaleTimeString("ja-JP", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </p>
+              {arrivalTime && (
+                <p
+                  className="text-right text-xs tracking-[0.05em] text-[#6b6b80]"
+                  style={{ fontFamily: "var(--font-mono)" }}
+                >
+                  到着予定：
+                  {arrivalTime.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}
+                </p>
+              )}
 
               {!isNavigating ? (
                 <button
