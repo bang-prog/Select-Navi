@@ -103,9 +103,13 @@ export default function Home() {
     geoError,
     isRerouting,
     distanceToNextManeuver,
+    muted,
+    toggleMute,
     start,
     stop,
   } = useTurnByTurn(route?.legs ?? [], handleOffRoute);
+
+  const [headingUp, setHeadingUp] = useState(true);
 
   const { newReport, dismissNewReport } = useNearbyReports(currentPosition, isNavigating);
 
@@ -424,6 +428,17 @@ export default function Home() {
                 </div>
               </div>
 
+              <p
+                className="text-right text-xs tracking-[0.05em] text-[#6b6b80]"
+                style={{ fontFamily: "var(--font-mono)" }}
+              >
+                到着予定：
+                {new Date(Date.now() + route.totalDurationMin * 60000).toLocaleTimeString("ja-JP", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </p>
+
               {!isNavigating ? (
                 <button
                   onClick={handleStartNav}
@@ -444,6 +459,25 @@ export default function Home() {
                 >
                   ナビ終了
                 </button>
+              )}
+
+              {isNavigating && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={toggleMute}
+                    className="flex-1 rounded-md border border-black/10 bg-[#F5F2E3] py-2 text-xs font-semibold tracking-[0.05em] uppercase"
+                    style={{ fontFamily: "var(--font-mono)" }}
+                  >
+                    {muted ? "🔇 音声OFF" : "🔊 音声ON"}
+                  </button>
+                  <button
+                    onClick={() => setHeadingUp((v) => !v)}
+                    className="flex-1 rounded-md border border-black/10 bg-[#F5F2E3] py-2 text-xs font-semibold tracking-[0.05em] uppercase"
+                    style={{ fontFamily: "var(--font-mono)" }}
+                  >
+                    {headingUp ? "🧭 進行方向上" : "🧭 北上固定"}
+                  </button>
+                </div>
               )}
 
               {isNavigating && isRerouting && (
@@ -490,6 +524,7 @@ export default function Home() {
             currentPosition={currentPosition}
             isNavigating={isNavigating}
             heading={heading}
+            headingUp={headingUp}
           />
 
           {isNavigating && currentStep && (

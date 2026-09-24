@@ -17,7 +17,8 @@ const OFF_ROUTE_THRESHOLD_M = 50;
 // 誤差による瞬間的なブレで誤反応しないよう、この時間以上連続で外れていたら再ルートする
 const OFF_ROUTE_CONFIRM_MS = 8000;
 
-function speak(text: string) {
+function speak(text: string, muted: boolean) {
+  if (muted) return;
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
   window.speechSynthesis.cancel();
   const utter = new SpeechSynthesisUtterance(text);
@@ -36,6 +37,14 @@ export function useTurnByTurn(
   const [geoError, setGeoError] = useState<string | null>(null);
   const [isRerouting, setIsRerouting] = useState(false);
   const [distanceToNextManeuver, setDistanceToNextManeuver] = useState<number | null>(null);
+  const [muted, setMuted] = useState(false);
+  const mutedRef = useRef(muted);
+  useEffect(() => {
+    mutedRef.current = muted;
+  }, [muted]);
+  const toggleMute = useCallback(() => {
+    setMuted((m) => !m);
+  }, []);
   const watchIdRef = useRef<number | null>(null);
   const prevPositionRef = useRef<LatLng | null>(null);
   const offRouteSinceRef = useRef<number | null>(null);
@@ -66,7 +75,7 @@ export function useTurnByTurn(
     reroutingRef.current = false;
     setIsRerouting(false);
     setDistanceToNextManeuver(null);
-    if (steps[0]) speak(steps[0].instruction);
+    if (steps[0]) speak(steps[0].instruction, mutedRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [legs]);
 
@@ -85,7 +94,7 @@ export function useTurnByTurn(
     reroutingRef.current = false;
     isNavigatingRef.current = true;
     setIsNavigating(true);
-    if (stepsRef.current[0]) speak(stepsRef.current[0].instruction);
+    if (stepsRef.current[0]) speak(stepsRef.current[0].instruction, mutedRef.current);
 
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
@@ -119,7 +128,7 @@ export function useTurnByTurn(
             maneuverDistance = nextStep?.maneuverLocation
               ? haversineMeters(current, nextStep.maneuverLocation)
               : null;
-            speak(nextStep.instruction);
+            speak(nextStep.instruction, mutedRef.current);
             return next;
           }
           maneuverDistance = dist;
@@ -180,6 +189,8 @@ export function useTurnByTurn(
     geoError,
     isRerouting,
     distanceToNextManeuver,
+    muted,
+    toggleMute,
     start,
     stop,
   };

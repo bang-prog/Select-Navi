@@ -19,6 +19,8 @@ interface Props {
   currentPosition: LatLng | null;
   isNavigating: boolean;
   heading: number | null;
+  /** true: 進行方向を上にして地図を回転（実車ナビ風）／false: 北を上に固定 */
+  headingUp: boolean;
 }
 
 const MAX_LEG_LAYERS = 5;
@@ -49,7 +51,7 @@ function createMarkerElement(large: boolean): HTMLDivElement {
   return el;
 }
 
-export default function MapView({ legs, currentPosition, isNavigating, heading }: Props) {
+export default function MapView({ legs, currentPosition, isNavigating, heading, headingUp }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markerRef = useRef<mapboxgl.Marker | null>(null);
@@ -209,8 +211,8 @@ export default function MapView({ legs, currentPosition, isNavigating, heading }
       map.easeTo({
         center: currentPosition,
         zoom: NAVIGATION_ZOOM,
-        pitch: NAVIGATION_PITCH,
-        bearing: heading ?? map.getBearing(),
+        pitch: headingUp ? NAVIGATION_PITCH : 0,
+        bearing: headingUp ? (heading ?? map.getBearing()) : 0,
         duration: wasNavigatingRef.current ? 800 : 1000,
       });
       wasNavigatingRef.current = true;
@@ -218,7 +220,7 @@ export default function MapView({ legs, currentPosition, isNavigating, heading }
       map.easeTo({ pitch: 0, bearing: 0, duration: 500 });
       wasNavigatingRef.current = false;
     }
-  }, [currentPosition, isNavigating, heading]);
+  }, [currentPosition, isNavigating, heading, headingUp]);
 
   return <div ref={containerRef} className="h-full w-full overflow-hidden rounded-2xl" />;
 }
