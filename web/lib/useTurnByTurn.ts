@@ -43,7 +43,14 @@ export function useTurnByTurn(
     mutedRef.current = muted;
   }, [muted]);
   const toggleMute = useCallback(() => {
-    setMuted((m) => !m);
+    setMuted((m) => {
+      const next = !m;
+      // ミュートにした瞬間、再生中の音声も即座に止める
+      if (next && typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+      return next;
+    });
   }, []);
   const watchIdRef = useRef<number | null>(null);
   const prevPositionRef = useRef<LatLng | null>(null);
