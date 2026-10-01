@@ -16,3 +16,6 @@ Thumbs.db
 # Editor
 .vscode/
 .idea/
+
+# 個人用メモ（GitHubには上げない）
+INTERVIEW_PREP.md
