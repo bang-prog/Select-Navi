@@ -23,13 +23,16 @@ function isSamePlace(a: GeocodeResult, b: GeocodeResult): boolean {
   );
 }
 
+export function isFavorite(place: GeocodeResult): boolean {
+  return getFavorites().some((f) => isSamePlace(f, place));
+}
+
 export function addFavorite(place: GeocodeResult): void {
   if (typeof window === "undefined") return;
   try {
-    const current = getFavorites();
     // すでに同じ場所が登録されていれば何もしない（重複防止）
-    if (current.some((f) => isSamePlace(f, place))) return;
-    const next = [...current, place];
+    if (isFavorite(place)) return;
+    const next = [...getFavorites(), place];
     // stringifyで文字列に変換
     localStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
   } catch {
