@@ -8,6 +8,7 @@ import { useTurnByTurn } from "@/lib/useTurnByTurn";
 import { useNearbyReports } from "@/lib/useNearbyReports";
 import { describeGeolocationError, haversineMeters } from "@/lib/geolocation";
 import { getSessionId } from "@/lib/session";
+import { addFavorite, getFavorites, isFavorite } from "@/lib/favorites";
 import type { GeocodeResult, LatLng, RouteChoiceMode, RouteResult } from "@/lib/types";
 import { VEHICLE_CLASS_LABELS, type VehicleClass } from "@/lib/toll";
 
@@ -114,6 +115,15 @@ export default function Home() {
   const { newReport, dismissNewReport } = useNearbyReports(currentPosition, isNavigating);
 
   const [currentChoiceId, setCurrentChoiceId] = useState<string | null>(null);
+
+  // 初回レンダリング時にlocalStorageから読み込む（getFavoritesはSSR時は[]を返す）
+  const [favorites, setFavorites] = useState<GeocodeResult[]>(() => getFavorites());
+
+  const handleAddFavorite = () => {
+    if (!destination) return;
+    addFavorite(destination);
+    setFavorites(getFavorites());
+  };
 
   // ナビ開始時のみ記録する（検索を試しただけの操作をノイズとして混ぜないため）。
   // 記録に失敗してもナビ自体は継続させる
@@ -318,6 +328,31 @@ export default function Home() {
             <div>
               <SectionLabel>目的地</SectionLabel>
               <LocationInput label="" placeholder="例: 亀岡駅" onSelect={setDestination} />
+              {destination && (
+                <button
+                  type="button"
+                  onClick={handleAddFavorite}
+                  disabled={isFavorite(destination)}
+                  className="mt-2 text-[10px] tracking-[0.05em] text-[#FF6004] disabled:opacity-40"
+                  style={{ fontFamily: "var(--font-mono)" }}
+                >
+                  {isFavorite(destination) ? "★ 登録済み" : "☆ お気に入りに追加"}
+                </button>
+              )}
+              {favorites.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {favorites.map((f, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setDestination(f)}
+                      className="rounded-full border border-black/10 bg-[#F5F2E3] px-2.5 py-1 text-[11px] text-[#2a2a33]"
+                    >
+                      {f.name}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="h-px bg-black/[0.07]" />
