@@ -8,7 +8,7 @@ import { useTurnByTurn } from "@/lib/useTurnByTurn";
 import { useNearbyReports } from "@/lib/useNearbyReports";
 import { describeGeolocationError, haversineMeters } from "@/lib/geolocation";
 import { getSessionId } from "@/lib/session";
-import { addFavorite, getFavorites, isFavorite } from "@/lib/favorites";
+import { addFavorite, getFavorites, isFavorite, removeFavorite } from "@/lib/favorites";
 import type { GeocodeResult, LatLng, RouteChoiceMode, RouteResult } from "@/lib/types";
 import { VEHICLE_CLASS_LABELS, type VehicleClass } from "@/lib/toll";
 
@@ -122,6 +122,11 @@ export default function Home() {
   const handleAddFavorite = () => {
     if (!destination) return;
     addFavorite(destination);
+    setFavorites(getFavorites());
+  };
+
+  const handleRemoveFavorite = (place: GeocodeResult) => {
+    removeFavorite(place);
     setFavorites(getFavorites());
   };
 
@@ -342,14 +347,22 @@ export default function Home() {
               {favorites.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {favorites.map((f, i) => (
-                    <button
+                    <span
                       key={i}
-                      type="button"
-                      onClick={() => setDestination(f)}
-                      className="rounded-full border border-black/10 bg-[#F5F2E3] px-2.5 py-1 text-[11px] text-[#2a2a33]"
+                      className="flex items-center gap-1 rounded-full border border-black/10 bg-[#F5F2E3] px-2.5 py-1 text-[11px] text-[#2a2a33]"
                     >
-                      {f.name}
-                    </button>
+                      <button type="button" onClick={() => setDestination(f)}>
+                        {f.name}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveFavorite(f)}
+                        aria-label={`${f.name}をお気に入りから削除`}
+                        className="text-[#6b6b80] hover:text-[#c0392b]"
+                      >
+                        ×
+                      </button>
+                    </span>
                   ))}
                 </div>
               )}

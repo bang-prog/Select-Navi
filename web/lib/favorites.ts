@@ -39,3 +39,14 @@ export function addFavorite(place: GeocodeResult): void {
     // 保存に失敗してもアプリは止めない
   }
 }
+
+export function removeFavorite(place: GeocodeResult): void {
+  if (typeof window === "undefined") return;
+  try {
+    // 指定された場所と一致しないものだけを残す
+    const next = getFavorites().filter((f) => !isSamePlace(f, place));
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
+  } catch {
+    // 保存に失敗してもアプリは止めない
+  }
+}
