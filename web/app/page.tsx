@@ -1,12 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import LocationInput from "@/components/LocationInput";
 import MapView from "@/components/MapView";
-import ReportButtons, { REPORT_LABELS } from "@/components/ReportButtons";
 import { useTurnByTurn } from "@/lib/useTurnByTurn";
-import { useNearbyReports } from "@/lib/useNearbyReports";
-import { describeGeolocationError, haversineMeters } from "@/lib/geolocation";
+import { describeGeolocationError } from "@/lib/geolocation";
 import { getSessionId } from "@/lib/session";
 import { addFavorite, getFavorites, isFavorite, removeFavorite } from "@/lib/favorites";
 import type { GeocodeResult, LatLng, RouteChoiceMode, RouteResult } from "@/lib/types";
@@ -112,8 +110,6 @@ export default function Home() {
 
   const [headingUp, setHeadingUp] = useState(true);
 
-  const { newReport, dismissNewReport } = useNearbyReports(currentPosition, isNavigating);
-
   const [currentChoiceId, setCurrentChoiceId] = useState<string | null>(null);
 
   // 初回レンダリング時にlocalStorageから読み込む（getFavoritesはSSR時は[]を返す）
@@ -188,13 +184,6 @@ export default function Home() {
     if (!route) return null;
     return new Date(Date.now() + route.totalDurationMin * 60000);
   }, [route]);
-
-  // 新着通報のアラートは一定時間で自動的に消す
-  useEffect(() => {
-    if (!newReport) return;
-    const timer = setTimeout(dismissNewReport, 8000);
-    return () => clearTimeout(timer);
-  }, [newReport, dismissNewReport]);
 
   const canSearch = Boolean(origin && destination && (!useIC || (entryIC && exitIC)));
 
@@ -598,18 +587,6 @@ export default function Home() {
             </div>
           )}
 
-          {newReport && currentPosition && (
-            <div className="absolute top-24 right-4 left-4 max-w-xs rounded-md border border-[#FF6004]/30 bg-[#FCF9E9]/95 p-3 text-sm font-bold shadow-[0_4px_16px_rgba(0,0,0,0.12)] backdrop-blur-sm sm:left-auto">
-              約{Math.round(haversineMeters(currentPosition, [newReport.lng, newReport.lat]) / 100) * 100}
-              m先で{REPORT_LABELS[newReport.type]}の通報がありました
-            </div>
-          )}
-
-          {isNavigating && (
-            <div className="absolute bottom-4 right-4">
-              <ReportButtons currentPosition={currentPosition} />
-            </div>
-          )}
         </div>
       </div>
     </div>
