@@ -78,6 +78,15 @@ export function trimPolylineFromPoint(point: LatLng, coordinates: LatLng[]): Lat
   return [projected, ...coordinates.slice(segmentIndex + 1)];
 }
 
+// 座標列（LineString）の全長をメートルで返す（区間の残り距離計算に使う）
+export function polylineLengthMeters(coordinates: LatLng[]): number {
+  let total = 0;
+  for (let i = 0; i < coordinates.length - 1; i++) {
+    total += haversineMeters(coordinates[i], coordinates[i + 1]);
+  }
+  return total;
+}
+
 export function describeGeolocationError(err: GeolocationPositionError): string {
   switch (err.code) {
     case err.PERMISSION_DENIED:

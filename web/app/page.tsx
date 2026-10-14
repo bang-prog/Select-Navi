@@ -102,6 +102,7 @@ export default function Home() {
     geoError,
     isRerouting,
     distanceToNextManeuver,
+    remainingDistanceKm,
     muted,
     toggleMute,
     start,
@@ -465,10 +466,13 @@ export default function Home() {
                     className="mb-1 text-[9px] tracking-[0.1em] text-[#6b6b80] uppercase"
                     style={{ fontFamily: "var(--font-mono)" }}
                   >
-                    距離
+                    {isNavigating && remainingDistanceKm != null ? "残り距離" : "距離"}
                   </div>
                   <div className="text-xl font-bold" style={{ fontFamily: "var(--font-mono)" }}>
-                    {route.totalDistanceKm.toFixed(1)}km
+                    {isNavigating && remainingDistanceKm != null
+                      ? remainingDistanceKm.toFixed(1)
+                      : route.totalDistanceKm.toFixed(1)}
+                    km
                   </div>
                 </div>
               </div>

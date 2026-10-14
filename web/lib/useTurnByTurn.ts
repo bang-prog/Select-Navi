@@ -7,6 +7,8 @@ import {
   describeGeolocationError,
   distanceToPolylineMeters,
   haversineMeters,
+  polylineLengthMeters,
+  trimPolylineFromPoint,
 } from "./geolocation";
 
 const ARRIVAL_THRESHOLD_M = 40;
@@ -37,6 +39,7 @@ export function useTurnByTurn(
   const [geoError, setGeoError] = useState<string | null>(null);
   const [isRerouting, setIsRerouting] = useState(false);
   const [distanceToNextManeuver, setDistanceToNextManeuver] = useState<number | null>(null);
+  const [remainingDistanceKm, setRemainingDistanceKm] = useState<number | null>(null);
   const [muted, setMuted] = useState(false);
   const mutedRef = useRef(muted);
   useEffect(() => {
@@ -82,6 +85,7 @@ export function useTurnByTurn(
     reroutingRef.current = false;
     setIsRerouting(false);
     setDistanceToNextManeuver(null);
+    setRemainingDistanceKm(null);
     if (steps[0]) speak(steps[0].instruction, mutedRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [legs]);
@@ -96,6 +100,7 @@ export function useTurnByTurn(
     setHeading(null);
     setIsRerouting(false);
     setDistanceToNextManeuver(null);
+    setRemainingDistanceKm(null);
     prevPositionRef.current = null;
     offRouteSinceRef.current = null;
     reroutingRef.current = false;
@@ -143,6 +148,16 @@ export function useTurnByTurn(
         });
         setDistanceToNextManeuver(maneuverDistance);
 
+        // 残り距離 = 現在の区間（leg）の残り長さ + まだ到達していない後続区間の距離の合計
+        const activeLeg = legsRef.current[activeLegIndex];
+        const remainingInActiveLegM = activeLeg
+          ? polylineLengthMeters(trimPolylineFromPoint(current, activeLeg.geometry.coordinates))
+          : 0;
+        const remainingLegsKm = legsRef.current
+          .slice(activeLegIndex + 1)
+          .reduce((sum, l) => sum + l.distanceKm, 0);
+        setRemainingDistanceKm(remainingInActiveLegM / 1000 + remainingLegsKm);
+
         // ルート逸脱検知→一定時間続いたら再ルートを要求する
         const callback = onOffRouteRef.current;
         if (callback && !reroutingRef.current) {
@@ -183,6 +198,7 @@ export function useTurnByTurn(
     setIsNavigating(false);
     setIsRerouting(false);
     setDistanceToNextManeuver(null);
+    setRemainingDistanceKm(null);
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
     }
@@ -196,6 +212,7 @@ export function useTurnByTurn(
     geoError,
     isRerouting,
     distanceToNextManeuver,
+    remainingDistanceKm,
     muted,
     toggleMute,
     start,
