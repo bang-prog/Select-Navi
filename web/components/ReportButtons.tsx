@@ -53,7 +53,7 @@ export default function ReportButtons({ currentPosition }: Props) {
     <div className="flex flex-col items-end gap-2">
       {message && (
         <div
-          className="rounded-md border border-black/10 bg-[#FCF9E9]/95 px-3 py-1.5 text-xs font-bold text-[#2a2a33] shadow-[0_2px_8px_rgba(0,0,0,0.12)] backdrop-blur-sm"
+          className="rounded-md border border-black/10 bg-white/95 px-3 py-1.5 text-xs font-bold text-[#1E293B] shadow-[0_2px_8px_rgba(0,0,0,0.12)] backdrop-blur-sm"
           style={{ fontFamily: "var(--font-mono)" }}
         >
           {message}
@@ -66,7 +66,7 @@ export default function ReportButtons({ currentPosition }: Props) {
             type="button"
             onClick={() => handleReport(type)}
             disabled={submittingType !== null}
-            className={`rounded-md border bg-[#FCF9E9]/95 px-3 py-2 text-[11px] font-semibold tracking-[0.05em] uppercase backdrop-blur-sm disabled:opacity-50 ${REPORT_COLORS[type]}`}
+            className={`rounded-md border bg-white/95 px-3 py-2 text-[11px] font-semibold tracking-[0.05em] uppercase backdrop-blur-sm disabled:opacity-50 ${REPORT_COLORS[type]}`}
             style={{ fontFamily: "var(--font-mono)" }}
           >
             {submittingType === type ? "送信中…" : REPORT_LABELS[type]}

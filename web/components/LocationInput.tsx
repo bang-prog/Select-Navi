@@ -62,7 +62,7 @@ export default function LocationInput({ label, placeholder, value, querySuffix, 
     <div className="relative">
       {label && (
         <label
-          className="mb-2 block text-[9px] tracking-[0.2em] text-[#6b6b80] uppercase"
+          className="mb-2 block text-[9px] tracking-[0.2em] text-[#64748B] uppercase"
           style={{ fontFamily: "var(--font-mono)" }}
         >
           {label}
@@ -72,8 +72,8 @@ export default function LocationInput({ label, placeholder, value, querySuffix, 
         <span
           className="pointer-events-none absolute top-1/2 left-[14px] h-1.5 w-1.5 -translate-y-1/2 rounded-full"
           style={{
-            background: filled ? "#FF6004" : "#aaa",
-            boxShadow: filled ? "0 0 8px #FF6004" : "none",
+            background: filled ? "#2563EB" : "#94A3B8",
+            boxShadow: filled ? "0 0 8px #2563EB" : "none",
           }}
         />
         <input
@@ -86,19 +86,19 @@ export default function LocationInput({ label, placeholder, value, querySuffix, 
           }}
           onFocus={() => results.length > 0 && setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
-          className="w-full rounded-md border bg-[#DCD4D4] py-3 pr-4 pl-8 text-[13px] text-[#333] outline-none transition focus:border-[#FF6004]/60 focus:shadow-[0_0_0_3px_rgba(255,96,4,0.08)]"
+          className="w-full rounded-md border bg-[#EEF2F6] py-3 pr-4 pl-8 text-[13px] text-[#333] outline-none transition focus:border-[#2563EB]/60 focus:shadow-[0_0_0_3px_rgba(37,99,235,0.08)]"
           style={{
             fontFamily: "var(--font-mono)",
-            borderColor: filled ? "rgba(255,96,4,0.4)" : "rgba(0,0,0,0.1)",
+            borderColor: filled ? "rgba(37,99,235,0.4)" : "rgba(0,0,0,0.1)",
           }}
         />
       </div>
       {open && results.length > 0 && (
-        <ul className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md border border-black/10 bg-[#FCF9E9] shadow-[0_4px_16px_rgba(0,0,0,0.12)]">
+        <ul className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md border border-black/10 bg-white shadow-[0_4px_16px_rgba(0,0,0,0.12)]">
           {results.map((r, i) => (
             <li
               key={i}
-              className="cursor-pointer px-3 py-2 text-sm hover:bg-[#FF6004]/[0.06]"
+              className="cursor-pointer px-3 py-2 text-sm hover:bg-[#2563EB]/[0.06]"
               onMouseDown={() => {
                 selectedNameRef.current = r.name;
                 setQuery(r.name);

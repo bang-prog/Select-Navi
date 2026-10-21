@@ -15,7 +15,7 @@ const VEHICLE_CLASS_ORDER: VehicleClass[] = ["light", "standard", "medium", "lar
 function SectionLabel({ children }: { children: string }) {
   return (
     <div
-      className="mb-3 text-[9px] tracking-[0.2em] text-[#6b6b80] uppercase"
+      className="mb-3 text-[9px] tracking-[0.2em] text-[#64748B] uppercase"
       style={{ fontFamily: "var(--font-mono)" }}
     >
       ── {children}
@@ -37,16 +37,16 @@ function Toggle({
       <span
         onClick={() => onChange(!checked)}
         className={`relative h-5 w-9 flex-shrink-0 rounded-full border transition-colors ${
-          checked ? "border-[#FF6004]/40 bg-[#FF6004]/15" : "border-black/10 bg-[#DCD4D4]"
+          checked ? "border-[#2563EB]/40 bg-[#2563EB]/15" : "border-black/10 bg-[#E2E8F0]"
         }`}
       >
         <span
           className={`absolute top-0.5 h-3.5 w-3.5 rounded-full transition-all ${
-            checked ? "left-[19px] bg-[#FF6004] shadow-[0_0_8px_rgba(255,96,4,0.5)]" : "left-0.5 bg-[#aaa]"
+            checked ? "left-[19px] bg-[#2563EB] shadow-[0_0_8px_rgba(37,99,235,0.5)]" : "left-0.5 bg-[#94A3B8]"
           }`}
         />
       </span>
-      <span className={`text-[13px] ${checked ? "text-[#2a2a33]" : "text-[#888]"}`}>{label}</span>
+      <span className={`text-[13px] ${checked ? "text-[#1E293B]" : "text-[#94A3B8]"}`}>{label}</span>
     </label>
   );
 }
@@ -264,7 +264,7 @@ export default function Home() {
   const statusText = isNavigating ? "NAVIGATING" : loading ? "SEARCHING..." : "SYSTEM READY";
 
   return (
-    <div className="min-h-screen bg-[#FCF9E9] text-[#2a2a33]">
+    <div className="min-h-screen bg-white text-[#1E293B]">
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-[400px_1fr]">
         <div className="space-y-5">
           <div>
@@ -275,7 +275,7 @@ export default function Home() {
               NAVIGATION SYSTEM
             </p>
             <h1
-              className="text-2xl leading-none font-bold text-[#FF6004]"
+              className="text-2xl leading-none font-bold text-[#2563EB]"
               style={{ fontFamily: "var(--font-display)" }}
             >
               SELECT
@@ -284,10 +284,10 @@ export default function Home() {
             </h1>
             <div className="mt-3 flex items-center gap-1.5">
               <span
-                className={`h-1.5 w-1.5 rounded-full bg-[#FF6004] shadow-[0_0_6px_#FF6004] ${loading || isNavigating ? "animate-pulse" : ""}`}
+                className={`h-1.5 w-1.5 rounded-full bg-[#2563EB] shadow-[0_0_6px_#2563EB] ${loading || isNavigating ? "animate-pulse" : ""}`}
               />
               <span
-                className="text-[10px] tracking-[0.1em] text-[#6b6b80]"
+                className="text-[10px] tracking-[0.1em] text-[#64748B]"
                 style={{ fontFamily: "var(--font-mono)" }}
               >
                 {statusText}
@@ -310,7 +310,7 @@ export default function Home() {
                 type="button"
                 onClick={handleUseCurrentLocation}
                 disabled={locatingOrigin}
-                className="mt-2 text-[10px] tracking-[0.05em] text-[#FF6004] disabled:opacity-40"
+                className="mt-2 text-[10px] tracking-[0.05em] text-[#2563EB] disabled:opacity-40"
                 style={{ fontFamily: "var(--font-mono)" }}
               >
                 {locatingOrigin ? "現在地を取得中..." : "◎ 現在地を出発地にする"}
@@ -328,7 +328,7 @@ export default function Home() {
                   type="button"
                   onClick={handleAddFavorite}
                   disabled={isFavorite(destination)}
-                  className="mt-2 text-[10px] tracking-[0.05em] text-[#FF6004] disabled:opacity-40"
+                  className="mt-2 text-[10px] tracking-[0.05em] text-[#2563EB] disabled:opacity-40"
                   style={{ fontFamily: "var(--font-mono)" }}
                 >
                   {isFavorite(destination) ? "★ 登録済み" : "☆ お気に入りに追加"}
@@ -339,7 +339,7 @@ export default function Home() {
                   {favorites.map((f, i) => (
                     <span
                       key={i}
-                      className="flex items-center gap-1 rounded-full border border-black/10 bg-[#F5F2E3] px-2.5 py-1 text-[11px] text-[#2a2a33]"
+                      className="flex items-center gap-1 rounded-full border border-black/10 bg-[#F1F5F9] px-2.5 py-1 text-[11px] text-[#1E293B]"
                     >
                       <button type="button" onClick={() => setDestination(f)}>
                         {f.name}
@@ -348,7 +348,7 @@ export default function Home() {
                         type="button"
                         onClick={() => handleRemoveFavorite(f)}
                         aria-label={`${f.name}をお気に入りから削除`}
-                        className="text-[#6b6b80] hover:text-[#c0392b]"
+                        className="text-[#64748B] hover:text-[#c0392b]"
                       >
                         ×
                       </button>
@@ -374,7 +374,7 @@ export default function Home() {
               </div>
 
               {!avoidHighway && useIC && (
-                <div className="mt-3 ml-1 space-y-3 border-l border-[#FF6004]/25 pl-3">
+                <div className="mt-3 ml-1 space-y-3 border-l border-[#2563EB]/25 pl-3">
                   <LocationInput
                     label="乗りたいIC"
                     placeholder="例: 鳴門"
@@ -394,11 +394,11 @@ export default function Home() {
             <button
               disabled={!canSearch || loading}
               onClick={() => runSearch()}
-              className="w-full rounded-md py-3.5 text-xs font-semibold tracking-[0.15em] text-white uppercase transition disabled:cursor-not-allowed disabled:bg-[#DCD4D4] disabled:text-[#aaa] disabled:shadow-none"
+              className="w-full rounded-md py-3.5 text-xs font-semibold tracking-[0.15em] text-white uppercase transition disabled:cursor-not-allowed disabled:bg-[#E2E8F0] disabled:text-[#94A3B8] disabled:shadow-none"
               style={{
                 fontFamily: "var(--font-mono)",
-                background: canSearch ? "linear-gradient(135deg, #FF6004 0%, #ff8c42 100%)" : undefined,
-                boxShadow: canSearch ? "0 0 30px rgba(255,96,4,0.25), 0 4px 16px rgba(255,96,4,0.15)" : undefined,
+                background: canSearch ? "linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)" : undefined,
+                boxShadow: canSearch ? "0 0 30px rgba(37,99,235,0.25), 0 4px 16px rgba(37,99,235,0.15)" : undefined,
               }}
             >
               {loading ? "SEARCHING..." : "ルートを検索"}
@@ -414,10 +414,10 @@ export default function Home() {
                 {route.legs.map((leg, i) => (
                   <li key={i}>
                     <div
-                      className="flex justify-between text-xs tracking-[0.05em] text-[#6b6b80] uppercase"
+                      className="flex justify-between text-xs tracking-[0.05em] uppercase"
                       style={{ fontFamily: "var(--font-mono)" }}
                     >
-                      <span>
+                      <span className={leg.kind === "highway" ? "text-[#16A34A]" : "text-[#2563EB]"}>
                         {leg.kind === "highway"
                           ? "高速区間"
                           : leg.kind === "route"
@@ -425,12 +425,12 @@ export default function Home() {
                             : "下道区間"}{" "}
                         {i + 1}
                       </span>
-                      <span>
+                      <span className="text-[#64748B]">
                         {leg.distanceKm.toFixed(1)}km / {Math.round(leg.durationMin)}分
                       </span>
                     </div>
                     {leg.tollEstimate && (
-                      <div className="mt-1 rounded-md border border-black/10 bg-[#F5F2E3] p-2 text-xs">
+                      <div className="mt-1 rounded-md border border-[#16A34A]/20 bg-[#16A34A]/[0.06] p-2 text-xs">
                         <ul className="space-y-0.5">
                           {VEHICLE_CLASS_ORDER.map((vc) => (
                             <li key={vc} className="flex justify-between">
@@ -439,23 +439,23 @@ export default function Home() {
                             </li>
                           ))}
                         </ul>
-                        <p className="mt-1 text-[#6b6b80]">※{leg.tollEstimate.note}</p>
+                        <p className="mt-1 text-[#64748B]">※{leg.tollEstimate.note}</p>
                       </div>
                     )}
                   </li>
                 ))}
               </ul>
 
-              <div className="flex items-center justify-between rounded-md border border-[#FF6004]/20 bg-[#FF6004]/[0.06] px-4 py-3">
+              <div className="flex items-center justify-between rounded-md border border-[#2563EB]/20 bg-[#2563EB]/[0.06] px-4 py-3">
                 <div>
                   <div
-                    className="mb-1 text-[9px] tracking-[0.1em] text-[#6b6b80] uppercase"
+                    className="mb-1 text-[9px] tracking-[0.1em] text-[#64748B] uppercase"
                     style={{ fontFamily: "var(--font-mono)" }}
                   >
                     推定所要時間
                   </div>
                   <div
-                    className="text-xl font-bold text-[#FF6004]"
+                    className="text-xl font-bold text-[#2563EB]"
                     style={{ fontFamily: "var(--font-mono)" }}
                   >
                     {Math.round(route.totalDurationMin)}分
@@ -463,7 +463,7 @@ export default function Home() {
                 </div>
                 <div className="text-right">
                   <div
-                    className="mb-1 text-[9px] tracking-[0.1em] text-[#6b6b80] uppercase"
+                    className="mb-1 text-[9px] tracking-[0.1em] text-[#64748B] uppercase"
                     style={{ fontFamily: "var(--font-mono)" }}
                   >
                     {isNavigating && remainingDistanceKm != null ? "残り距離" : "距離"}
@@ -479,7 +479,7 @@ export default function Home() {
 
               {arrivalTime && (
                 <p
-                  className="text-right text-xs tracking-[0.05em] text-[#6b6b80]"
+                  className="text-right text-xs tracking-[0.05em] text-[#64748B]"
                   style={{ fontFamily: "var(--font-mono)" }}
                 >
                   到着予定：
@@ -493,8 +493,8 @@ export default function Home() {
                   className="w-full rounded-md py-3 text-xs font-semibold tracking-[0.15em] text-white uppercase"
                   style={{
                     fontFamily: "var(--font-mono)",
-                    background: "linear-gradient(135deg, #FF6004 0%, #ff8c42 100%)",
-                    boxShadow: "0 0 20px rgba(255,96,4,0.2)",
+                    background: "linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)",
+                    boxShadow: "0 0 20px rgba(37,99,235,0.2)",
                   }}
                 >
                   ナビ開始
@@ -502,7 +502,7 @@ export default function Home() {
               ) : (
                 <button
                   onClick={handleStopNav}
-                  className="w-full rounded-md border border-[#FF6004]/40 bg-transparent py-3 text-xs font-semibold tracking-[0.15em] text-[#FF6004] uppercase"
+                  className="w-full rounded-md border border-[#2563EB]/40 bg-transparent py-3 text-xs font-semibold tracking-[0.15em] text-[#2563EB] uppercase"
                   style={{ fontFamily: "var(--font-mono)" }}
                 >
                   ナビ終了
@@ -513,14 +513,14 @@ export default function Home() {
                 <div className="flex gap-2">
                   <button
                     onClick={toggleMute}
-                    className="flex-1 rounded-md border border-black/10 bg-[#F5F2E3] py-2 text-xs font-semibold tracking-[0.05em] uppercase"
+                    className="flex-1 rounded-md border border-black/10 bg-[#F1F5F9] py-2 text-xs font-semibold tracking-[0.05em] uppercase"
                     style={{ fontFamily: "var(--font-mono)" }}
                   >
                     {muted ? "🔇 音声OFF" : "🔊 音声ON"}
                   </button>
                   <button
                     onClick={() => setHeadingUp((v) => !v)}
-                    className="flex-1 rounded-md border border-black/10 bg-[#F5F2E3] py-2 text-xs font-semibold tracking-[0.05em] uppercase"
+                    className="flex-1 rounded-md border border-black/10 bg-[#F1F5F9] py-2 text-xs font-semibold tracking-[0.05em] uppercase"
                     style={{ fontFamily: "var(--font-mono)" }}
                   >
                     {headingUp ? "🧭 進行方向上" : "🧭 北上固定"}
@@ -530,7 +530,7 @@ export default function Home() {
 
               {isNavigating && isRerouting && (
                 <div
-                  className="rounded-md border border-black/10 bg-[#F5F2E3] p-3 text-xs tracking-[0.02em]"
+                  className="rounded-md border border-black/10 bg-[#F1F5F9] p-3 text-xs tracking-[0.02em]"
                   style={{ fontFamily: "var(--font-mono)" }}
                 >
                   ルートを外れたため、再検索しています…
@@ -538,9 +538,9 @@ export default function Home() {
               )}
 
               {isNavigating && currentStep && (
-                <div className="rounded-md border border-black/10 bg-[#F5F2E3] p-3 text-sm">
+                <div className="rounded-md border border-black/10 bg-[#F1F5F9] p-3 text-sm">
                   <p
-                    className="mb-1 text-[9px] tracking-[0.15em] text-[#6b6b80] uppercase"
+                    className="mb-1 text-[9px] tracking-[0.15em] text-[#64748B] uppercase"
                     style={{ fontFamily: "var(--font-mono)" }}
                   >
                     次の案内
@@ -560,7 +560,7 @@ export default function Home() {
             </div>
           )}
 
-          <div className="flex items-center justify-between border-t border-black/[0.07] pt-4 text-[9px] tracking-[0.1em] text-[#c9c1c1]" style={{ fontFamily: "var(--font-mono)" }}>
+          <div className="flex items-center justify-between border-t border-black/[0.07] pt-4 text-[9px] tracking-[0.1em] text-[#94A3B8]" style={{ fontFamily: "var(--font-mono)" }}>
             <span>POWERED BY MAPBOX</span>
             <span>v2.0</span>
           </div>
@@ -576,9 +576,9 @@ export default function Home() {
           />
 
           {isNavigating && currentStep && (
-            <div className="absolute top-4 right-4 left-4 max-w-xs rounded-md border border-black/10 bg-[#FCF9E9]/95 p-3 shadow-[0_4px_16px_rgba(0,0,0,0.12)] backdrop-blur-sm sm:left-auto">
+            <div className="absolute top-4 right-4 left-4 max-w-xs rounded-md border border-black/10 bg-white/95 p-3 shadow-[0_4px_16px_rgba(0,0,0,0.12)] backdrop-blur-sm sm:left-auto">
               <p
-                className="mb-1 text-[9px] tracking-[0.15em] text-[#FF6004] uppercase"
+                className="mb-1 text-[9px] tracking-[0.15em] text-[#2563EB] uppercase"
                 style={{ fontFamily: "var(--font-mono)" }}
               >
                 {distanceToNextManeuver == null
