@@ -61,7 +61,7 @@ export default function MapView({ legs, currentPosition, isNavigating, heading, 
     if (!containerRef.current || mapRef.current) return;
     const map = new mapboxgl.Map({
       container: containerRef.current,
-      style: "mapbox://styles/yo3bang/cmu8a0shf000w01r77bjuc78g",
+      style: "mapbox://styles/mapbox/navigation-day-v1",
       center: [135.5, 34.7],
       zoom: 7,
     });
