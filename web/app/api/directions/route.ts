@@ -165,23 +165,26 @@ export async function POST(req: NextRequest) {
     const legs: RouteLeg[] = [];
 
     if (entryIC && exitIC) {
-      const [r1, r2, r3] = await Promise.all([
-        fetchDirections(origin, entryIC, true),
-        fetchDirections(entryIC, exitIC, false),
-        fetchDirections(exitIC, destination, true),
+      // entryIC/exitICの座標そのものへ強制的に立ち寄らせると、その地点が側道経由でしか
+      // 高速本線につながっていない（Mapboxの道路データ上の都合）ため、一度高速を降りて
+      // 側道を通ってから乗り直す、という不自然な迂回が実際の案内ステップに生まれてしまう。
+      // そこで、まずIC間の素の結果から「本当の高速本線（最長のmotorway区間）」が
+      // 実際にどの座標から始まり、どの座標で終わるかを特定し、起点・終点の下道ルートは
+      // IC座標ではなくその「本線に乗る実際の地点」を目的地にして計算し直す。
+      // これにより迂回そのものが案内ステップから消える（表示上の分類だけでなく実体を直す）
+      const probe = await fetchDirections(entryIC, exitIC, false);
+      const middleSteps = probe.legs?.[0]?.steps ?? [];
+      const { start, end } = longestMotorwayRun(middleSteps);
+      const highwaySteps = middleSteps.slice(start, end);
+      const cleanEntryPoint = highwaySteps[0]?.maneuver.location ?? entryIC;
+      const cleanExitPoint = middleSteps[end]?.maneuver.location ?? exitIC;
+
+      const [r1, r3] = await Promise.all([
+        fetchDirections(origin, cleanEntryPoint, true),
+        fetchDirections(cleanExitPoint, destination, true),
       ]);
 
-      const middleSteps = r2.legs?.[0]?.steps ?? [];
-      const { start, end } = longestMotorwayRun(middleSteps);
-      const entrySteps = [...(r1.legs?.[0]?.steps ?? []), ...middleSteps.slice(0, start)];
-      const highwaySteps = middleSteps.slice(start, end);
-      const exitSteps = [...middleSteps.slice(end), ...(r3.legs?.[0]?.steps ?? [])];
-
-      legs.push(
-        legFromSteps(entrySteps, "local"),
-        legFromSteps(highwaySteps, "highway"),
-        legFromSteps(exitSteps, "local")
-      );
+      legs.push(toLeg(r1, "local"), legFromSteps(highwaySteps, "highway"), toLeg(r3, "local"));
     } else {
       const r = await fetchDirections(origin, destination, Boolean(avoidHighway));
       // 高速道路を避けた場合は確実に下道のみだが、通常の最短ルートは
